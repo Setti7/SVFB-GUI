@@ -4,7 +4,6 @@ import cv2
 import time
 from getkeys import key_check_c
 import os
-from GUI_Test import Worker
 
 upperBound_s1 = np.array([200, 150,
                           255])  # upper and lower bound for the color detection (the way I came up with to find the contour of the green rectangle)

@@ -1,5 +1,4 @@
 import json, datetime
-import multiprocessing as mp
 from urllib.request import urlopen
 from urllib.error import URLError
 import sys, numpy as np, os, webbrowser
@@ -8,7 +7,6 @@ from PyQt5.QtCore import QThread, QObject, pyqtSignal
 from PyQt5 import QtGui
 from PyQt5.uic import loadUi
 import save_data
-# import simulating_save_data
 
 class Worker(QObject):
 
