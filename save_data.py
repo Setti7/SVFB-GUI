@@ -2,7 +2,7 @@ import numpy as np
 from PIL import ImageGrab
 import cv2
 import time
-from getkeys import key_check_c
+from getkeys import key_check
 import os
 
 upperBound_s1 = np.array([200, 150,
@@ -165,7 +165,9 @@ def process_img(img_rgb, green_bar_win):
     return img_rgb, rect_center_heigth, lowest_point
 
 run = True
-def main():
+def main(res=[1280, 720], key="C"):
+    print("Running on: {}x{}".format(res[0], res[1]))
+    print("Using {} key".format(key))
     ###################################################################################################
 
     upperBound_s1 = np.array([200, 150,
@@ -211,7 +213,8 @@ def main():
 
     while run:
 
-        screen = np.array(ImageGrab.grab(bbox=(0, 40, 1280, 760)))  # gets what is happening on the screen
+        res_x, res_y = res
+        screen = np.array(ImageGrab.grab(bbox=(0, 40, res_x, res_y+40 )))  # x = 1280, y = 760
 
         # print('Frame took {} ms'.format(np.round((time.time()-last_time)*1000, 2)))
         # print('FPS: ', np.round(1/(time.time()-last_time), 1))
@@ -231,10 +234,10 @@ def main():
 
             # keys = key_check()
 
-            c_pressed = key_check_c()
+            key_pressed = key_check(key)
 
             data = [d_rect_fish, d_rect_floor,
-                    c_pressed]  # example c pressed: [231, 456, 1]. c not pressed: [231, 456, 0]
+                    key_pressed]  # example c pressed: [231, 456, 1]. c not pressed: [231, 456, 0]
 
             training_data.append(data)
             print(data)
@@ -281,4 +284,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    main(res=[1280, 720])

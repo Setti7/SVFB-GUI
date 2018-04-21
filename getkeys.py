@@ -21,3 +21,9 @@ def key_check_c():
         return 1
     else:
         return 0
+
+def key_check(key):
+    if wapi.GetAsyncKeyState(ord(key)):
+        return 1
+    else:
+        return 0
