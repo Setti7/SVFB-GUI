@@ -1,4 +1,4 @@
-import json, datetime
+import json, datetime, requests, re
 from urllib.request import urlopen
 from urllib.error import URLError
 import sys, numpy as np, os, webbrowser
@@ -60,8 +60,6 @@ class CheckForUpdates(QObject):
 
 class ChangeKey(QDialog):
 
-    key_changed = pyqtSignal()
-
     def __init__(self):
         super().__init__()
         self.initUI()
@@ -83,8 +81,70 @@ class ChangeKey(QDialog):
         with open("config.txt", "w") as f:
             json.dump(output, f)
 
-        self.key_changed.emit()
         self.close()
+
+class Login(QDialog):
+    logged_user = pyqtSignal(str)
+
+    def __init__(self):
+        super().__init__()
+        self.initUI()
+        self.setWindowIcon(QtGui.QIcon('logo\\logo.png'))
+
+        self.login_btn.clicked.connect(self.login)
+        self.create_account_btn.clicked.connect(self.create_account)
+        self.errorLabel.hide()
+        not_resize = self.errorLabel.sizePolicy()
+        not_resize.setRetainSizeWhenHidden(True)
+        self.errorLabel.setSizePolicy(not_resize)
+
+    def initUI(self):
+        loadUi('login_dialog.ui', self)
+
+    def create_account(self):
+        webbrowser.open("http://127.0.0.1:8000/accounts/create")
+
+    def login(self):
+        max_retries = 2
+        login_url = "http://127.0.0.1:8000/accounts/login/?next=/home/"
+
+        username = self.usernameLineEdit.text()
+        password = self.passwordLineEdit.text()
+
+        client = requests.Session()
+        adapter = requests.adapters.HTTPAdapter(max_retries=max_retries)
+        # client.mount('https://', adapter)
+        client.mount('http://', adapter)
+
+        client.get(login_url)
+        csrftoken = client.cookies['csrftoken']
+        login_data = {'username': username, 'password': password, 'csrfmiddlewaretoken': csrftoken}
+
+        try:
+            response = client.post(login_url, data=login_data)
+            success_text = "Logout from {}".format(username)
+
+            print(response)
+
+            if success_text in str(response.content):
+
+                with open("config.txt", "r") as f:
+                    output = json.loads(f.read())
+                    output['User'] = username
+                    output['Password'] = password
+
+                with open("config.txt", "w") as f:
+                    json.dump(output, f)
+
+                print("Logged in")
+                self.close()
+
+            else:
+                self.errorLabel.show()
+                self.passwordLineEdit.clear()
+
+        except Exception as e:
+            print(e)
 
 
 class Widget(QWidget):
@@ -104,18 +164,27 @@ class Widget(QWidget):
         self.used_key_label.setText('Using "{}" key to fish'.format(self.used_key))
         self.data_stop.setEnabled(False)
 
+        if not self.authorize_user():
+            login = Login()
+            login.exec_()
+
+            with open("config.txt", "r") as f:
+                output = json.loads(f.read())
+                self.username = output["User"]
+
         self.update_check()
 
         # Try finding score file
         self.score_file = "Data\\frames.npy"
         if os.path.exists(self.score_file):
             score = sum(list(np.load(self.score_file)))
-            self.label.setText("Score: {}".format(str(score)))
+            self.label.setText("Score: {} ({})".format(str(score), self.username))
 
         self.data_start.clicked.connect(self.data_start_action)
         self.data_stop.clicked.connect(self.data_stop_action)
         self.send_btn.clicked.connect(self.go_to_website)
         self.change_key_btn.clicked.connect(self.change_key)
+
 
     def initUI(self):
         loadUi('GUI_design_with_res.ui', self)
@@ -186,6 +255,8 @@ class Widget(QWidget):
         self.zoom_levelSpinBox.setEnabled(False)
         self.change_key_btn.setEnabled(False)
 
+        print("Zoom: {}".format(self.zoom_levelSpinBox.text()))
+
         save_data.run = True
 
         # Thread: __init__
@@ -217,7 +288,38 @@ class Widget(QWidget):
 
         if os.path.exists(self.score_file):
             score = sum(list(np.load(self.score_file)))
-            self.label.setText("Score: {}".format(str(score)))
+            self.label.setText("Score: {} ({})".format(str(score), self.username))
+
+    def authorize_user(self):
+        max_retries = 2
+        login_url = "http://127.0.0.1:8000/accounts/login/?next=/home/"
+
+        with open("config.txt", 'r') as f:
+            output = json.loads(f.read())
+            self.username = output['User']
+            password = output['Password']
+
+        client = requests.Session()
+        adapter = requests.adapters.HTTPAdapter(max_retries=max_retries)
+        # client.mount('https://', adapter)
+        client.mount('http://', adapter)
+
+        client.get(login_url)
+        csrftoken = client.cookies['csrftoken']
+        login_data = {'username': self.username, 'password': password, 'csrfmiddlewaretoken': csrftoken}
+
+        try:
+            response = client.post(login_url, data=login_data)
+            success_text = "Logout from {}".format(self.username)
+
+            if success_text in str(response.content):
+                return True
+            else:
+                return False
+
+        except Exception as e:
+            print(e)
+            return False
 
 
 if __name__ == '__main__':

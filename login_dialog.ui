@@ -6,9 +6,21 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>302</width>
-    <height>178</height>
+    <width>287</width>
+    <height>205</height>
    </rect>
+  </property>
+  <property name="minimumSize">
+   <size>
+    <width>287</width>
+    <height>205</height>
+   </size>
+  </property>
+  <property name="maximumSize">
+   <size>
+    <width>287</width>
+    <height>205</height>
+   </size>
   </property>
   <property name="windowTitle">
    <string>Login</string>
@@ -16,6 +28,9 @@
   <layout class="QVBoxLayout" name="verticalLayout_2">
    <item>
     <layout class="QVBoxLayout" name="verticalLayout">
+     <property name="spacing">
+      <number>9</number>
+     </property>
      <item>
       <widget class="QLabel" name="label">
        <property name="text">
@@ -31,17 +46,29 @@
       </widget>
      </item>
      <item>
-      <spacer name="verticalSpacer">
-       <property name="orientation">
-        <enum>Qt::Vertical</enum>
+      <widget class="QLabel" name="errorLabel">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
        </property>
-       <property name="sizeHint" stdset="0">
+       <property name="minimumSize">
         <size>
-         <width>20</width>
-         <height>40</height>
+         <width>0</width>
+         <height>0</height>
         </size>
        </property>
-      </spacer>
+       <property name="text">
+        <string>Wrong username/password. Try again.</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignCenter</set>
+       </property>
+       <property name="margin">
+        <number>0</number>
+       </property>
+      </widget>
      </item>
      <item>
       <layout class="QFormLayout" name="formLayout">
@@ -79,6 +106,9 @@
        <property name="orientation">
         <enum>Qt::Vertical</enum>
        </property>
+       <property name="sizeType">
+        <enum>QSizePolicy::Preferred</enum>
+       </property>
        <property name="sizeHint" stdset="0">
         <size>
          <width>20</width>
@@ -90,14 +120,14 @@
      <item>
       <layout class="QHBoxLayout" name="horizontalLayout">
        <item>
-        <widget class="QPushButton" name="pushButton_2">
+        <widget class="QPushButton" name="login_btn">
          <property name="text">
           <string>Login</string>
          </property>
         </widget>
        </item>
        <item>
-        <widget class="QPushButton" name="pushButton">
+        <widget class="QPushButton" name="create_account_btn">
          <property name="text">
           <string>Create account</string>
          </property>

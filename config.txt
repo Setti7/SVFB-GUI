@@ -1,1 +1,1 @@
-{"Version": 1.0, "Date": "2018-04-19", "Used key": "C", "User": "Anon", "Password": "idk"}
+{"Version": 0.9, "Date": "2018-04-24", "Used key": "K", "User": "dedeco", "Password": "bnm,.;421"}
