@@ -41,14 +41,25 @@ class CheckForUpdates(QObject):
         try:
             data = urlopen("http://127.0.0.1:8000/version-control").read()
             output = json.loads(data)
-            last_info = output["Version Control"][-1]
 
+            changes = []
+            versions = []
+            critical = False
+            for data in output['Version Control']:
+                if datetime.datetime.strptime(data['Date'], '%Y-%m-%d') > Widget.date:
+                    changes.append(data['Changes'])
+                    versions.append(float(data['Version']))
+                if data['Critical']:
+                    critical = True
+
+            changes = "Changes since v{} (your current version):\n".format(Widget.version) + "\n".join(changes)
+
+            last_info = output["Version Control"][0]
             version = last_info['Version']
-            changes = last_info['Changes']
             date = datetime.datetime.strptime(last_info['Date'], '%Y-%m-%d')
 
             if Widget.date < date:
-                self.update_text.emit([Widget.version, version, changes])
+                self.update_text.emit([Widget.version, version, changes, critical])
                 self.finished.emit()
 
         except URLError:
@@ -70,7 +81,7 @@ class ChangeKey(QDialog):
 
     def initUI(self):
         loadUi('key_used_dialog.ui', self)
-        self.show()
+        #self.exec_()
 
     def save(self):
         with open("config.txt", "r") as f:
@@ -83,6 +94,7 @@ class ChangeKey(QDialog):
 
         self.close()
 
+
 class Login(QDialog):
     logged_user = pyqtSignal(str)
 
@@ -93,16 +105,86 @@ class Login(QDialog):
 
         self.login_btn.clicked.connect(self.login)
         self.create_account_btn.clicked.connect(self.create_account)
-        self.errorLabel.hide()
-        not_resize = self.errorLabel.sizePolicy()
-        not_resize.setRetainSizeWhenHidden(True)
-        self.errorLabel.setSizePolicy(not_resize)
+        self.login_error.hide()
+        self.create_account_error.hide()
+        self.create_account_frame.hide()
+        self.resize(287, 160)
+        self.login_resized = False
+        self.clicked_first = True
+
+        # Hide layout2
+
+        # not_resize = self.errorLabel.sizePolicy()
+        # not_resize.setRetainSizeWhenHidden(True)
+        # self.login_error.setSizePolicy(not_resize)
 
     def initUI(self):
         loadUi('login_dialog.ui', self)
 
     def create_account(self):
-        webbrowser.open("http://127.0.0.1:8000/accounts/create")
+        if self.clicked_first:
+            width = self.width()
+            height = self.height()
+            self.resize(width, height + 175)
+            self.create_account_error.setText("""Complete the spaces below to \ncreate a new account.""")
+            self.create_account_error.show()
+            self.create_account_btn.clicked.connect(self.create_account_online)
+            self.create_account_frame.show()
+            self.clicked_first = False
+            #self.create_account_btn.setFocus(True)
+
+        else:
+            self.create_account_btn.clicked.connect(self.create_account_online)
+            self.clicked_first = False
+
+
+    def create_account_online(self):
+        max_retries = 2
+        create_account_url = "http://127.0.0.1:8000/accounts/create/?next=/home/"
+
+        username = self.create_username.text()
+        password1 = self.create_password.text()
+        password2 = self.create_password_confirm.text()
+        email = self.create_email.text()
+        self.create_resized = False
+
+
+        client = requests.Session()
+        adapter = requests.adapters.HTTPAdapter(max_retries=max_retries)
+        # client.mount('https://', adapter)
+        client.mount('http://', adapter)
+
+        client.get(create_account_url)
+        csrftoken = client.cookies['csrftoken']
+        login_data = {'username': username, 'password1': password1, 'password2': password2, 'email': email, 'csrfmiddlewaretoken': csrftoken}
+
+        try:
+            response = client.post(create_account_url, data=login_data)
+            success_text = "Logout from {}".format(username)
+
+            print(response)
+
+            if success_text in str(response.content):
+
+                with open("config.txt", "r") as f:
+                    output = json.loads(f.read())
+                    output['User'] = username
+                    output['Password'] = password1
+
+                with open("config.txt", "w") as f:
+                    json.dump(output, f)
+
+                print("Logged in")
+                self.close()
+
+            else:
+
+                self.create_password.clear()
+                self.create_password_confirm.clear()
+                self.create_account_error.setText("""An error ocurred. Please try again.<br>If the error persists, create the account <a href="http://127.0.0.1:8000/accounts/create/?next=/home/"><span style=" text-decoration: underline; color:#0000ff;">here</span></a>""")
+
+        except Exception as e:
+            print(e)
 
     def login(self):
         max_retries = 2
@@ -140,7 +222,16 @@ class Login(QDialog):
                 self.close()
 
             else:
-                self.errorLabel.show()
+
+                print(self.width(), self.height())
+
+                if not self.login_resized:
+                    width = self.width()
+                    height = self.height()
+                    self.resize(width, height + 20)
+                    self.login_resized = True
+
+                self.login_error.show()
                 self.passwordLineEdit.clear()
 
         except Exception as e:
@@ -185,7 +276,6 @@ class Widget(QWidget):
         self.send_btn.clicked.connect(self.go_to_website)
         self.change_key_btn.clicked.connect(self.change_key)
 
-
     def initUI(self):
         loadUi('GUI_design_with_res.ui', self)
         self.show()
@@ -215,28 +305,53 @@ class Widget(QWidget):
         self.check_thread.start()
 
     def update_box(self, update_info):
-        updateBox = QMessageBox()
-        updateBox.setIcon(QMessageBox.Information)
-        updateBox.setText("There is a new version available!")
-        updateBox.setInformativeText(
-            """Please click "Ok" to be redirected to the download page. You can also see the changelog details below!"""
-        )
-        updateBox.setWindowTitle("Update required")
-        updateBox.setWindowIcon(QtGui.QIcon('logo\\logo.png'))
 
-        current_version, new_version, changes = update_info
+        current_version, new_version, changes, critical = update_info
 
-        text = """Your version: {0}\t|\tNew version: {1}\n\nv{1} changes:\n{2}""".format(current_version, new_version,
-                                                                                         changes)
-        updateBox.setDetailedText(text)
+        if not critical:
+            updateBox = QMessageBox()
+            updateBox.setIcon(QMessageBox.Information)
+            updateBox.setText("There is a new version available!")
+            updateBox.setInformativeText(
+                """Please click "Ok" to be redirected to the download page. You can also see the changelog details below!"""
+            )
+            updateBox.setWindowTitle("Update required")
+            updateBox.setWindowIcon(QtGui.QIcon('logo\\logo.png'))
 
-        updateBox.setEscapeButton(QMessageBox.Close)
-        updateBox.addButton(QMessageBox.Close)
-        self.v_label.setText("v{} (v{} available)".format(self.version, new_version))
+            text = """Version available: {1}\n\n{2}""".format(current_version, new_version,
+                                                                                             changes)
+            updateBox.setDetailedText(text)
 
-        ok = updateBox.addButton(QMessageBox.Ok)
-        ok.clicked.connect(self.go_to_update_page)
-        updateBox.exec_()
+            updateBox.setEscapeButton(QMessageBox.Close)
+            updateBox.addButton(QMessageBox.Close)
+            self.v_label.setText("v{} (v{} available)".format(self.version, new_version))
+
+            ok = updateBox.addButton(QMessageBox.Ok)
+            ok.clicked.connect(self.go_to_update_page)
+            updateBox.exec_()
+
+        else:
+            updateBox = QMessageBox()
+            updateBox.setIcon(QMessageBox.Warning)
+            updateBox.setText("<strong>Your version is super outdated and is not useful anymore!</strong>")
+            updateBox.setInformativeText(
+                """Please click <i>Ok</i> to download the newer one. You can also see the changelog details below! <small>(The critical change is highlighted)</small>"""
+            )
+            updateBox.setWindowTitle("Unsupported Software")
+            updateBox.setWindowIcon(QtGui.QIcon('logo\\logo.png'))
+
+            text = """Version available: {1}\n\n{2}""".format(current_version, new_version,
+                                                              changes)
+            updateBox.setDetailedText(text)
+
+            updateBox.setEscapeButton(QMessageBox.Close)
+            updateBox.addButton(QMessageBox.Close)
+            self.v_label.setText("v{} REQUIRED".format(new_version))
+
+            ok = updateBox.addButton(QMessageBox.Ok)
+            ok.clicked.connect(self.go_to_update_page)
+            updateBox.exec_()
+            self.close()
 
     def change_key(self):
         self.dialog = ChangeKey()
