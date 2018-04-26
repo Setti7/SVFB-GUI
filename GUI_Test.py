@@ -2,9 +2,9 @@ import json, datetime, requests, re
 from urllib.request import urlopen
 from urllib.error import URLError
 import sys, numpy as np, os, webbrowser
-from PyQt5.QtWidgets import QWidget, QApplication, QMessageBox, QDialog
+from PyQt5.QtWidgets import QWidget, QApplication, QMessageBox, QDialog, QGraphicsPixmapItem
 from PyQt5.QtCore import QThread, QObject, pyqtSignal, pyqtSlot
-from PyQt5 import QtGui
+from PyQt5 import QtGui, QtCore
 from PyQt5.uic import loadUi
 import save_data
 
@@ -95,14 +95,23 @@ class ChangeKey(QDialog):
         self.close()
 
 
-class Login(QDialog):
-    logged_user = pyqtSignal(str)
+class AccountManager(QDialog):
 
     def __init__(self):
         super().__init__()
         self.initUI()
-        self.setWindowIcon(QtGui.QIcon('logo\\logo.png'))
 
+        # Start session:
+        self.client = requests.Session()
+        self.adapter = requests.adapters.HTTPAdapter(max_retries=2)
+        self.client.mount('http://', self.adapter) # client.mount('https://', adapter)
+
+        self.exec_()
+
+    def initUI(self):
+        loadUi('login_dialog.ui', self)
+
+        self.setWindowIcon(QtGui.QIcon('logo\\logo.png'))
         self.login_btn.clicked.connect(self.login)
         self.create_account_btn.clicked.connect(self.create_account)
         self.login_error.hide()
@@ -111,15 +120,6 @@ class Login(QDialog):
         self.resize(287, 160)
         self.login_resized = False
         self.clicked_first = True
-
-        # Hide layout2
-
-        # not_resize = self.errorLabel.sizePolicy()
-        # not_resize.setRetainSizeWhenHidden(True)
-        # self.login_error.setSizePolicy(not_resize)
-
-    def initUI(self):
-        loadUi('login_dialog.ui', self)
 
     def create_account(self):
         if self.clicked_first:
@@ -131,7 +131,6 @@ class Login(QDialog):
             self.create_account_btn.clicked.connect(self.create_account_online)
             self.create_account_frame.show()
             self.clicked_first = False
-            #self.create_account_btn.setFocus(True)
 
         else:
             self.create_account_btn.clicked.connect(self.create_account_online)
@@ -139,7 +138,6 @@ class Login(QDialog):
 
 
     def create_account_online(self):
-        max_retries = 2
         create_account_url = "http://127.0.0.1:8000/accounts/create/?next=/home/"
 
         username = self.create_username.text()
@@ -149,19 +147,14 @@ class Login(QDialog):
         self.create_resized = False
 
         try:
-            client = requests.Session()
-            adapter = requests.adapters.HTTPAdapter(max_retries=max_retries)
-            # client.mount('https://', adapter)
-            client.mount('http://', adapter)
-
-            client.get(create_account_url)
-            csrftoken = client.cookies['csrftoken']
+            self.client.get(create_account_url)
+            csrftoken = self.client.cookies['csrftoken']
             login_data = {'username': username, 'password1': password1, 'password2': password2, 'email': email, 'csrfmiddlewaretoken': csrftoken}
 
-            response = client.post(create_account_url, data=login_data)
+            response = self.client.post(create_account_url, data=login_data)
             success_text = "Logout from {}".format(username)
 
-            print(response)
+            print("response (account creation) {}".format(response))
 
             if success_text in str(response.content):
 
@@ -186,23 +179,18 @@ class Login(QDialog):
             print(e)
 
     def login(self):
-        max_retries = 2
         login_url = "http://127.0.0.1:8000/accounts/login/?next=/home/"
 
         username = self.usernameLineEdit.text()
         password = self.passwordLineEdit.text()
 
         try:
-            client = requests.Session()
-            adapter = requests.adapters.HTTPAdapter(max_retries=max_retries)
-            # client.mount('https://', adapter)
-            client.mount('http://', adapter)
 
-            client.get(login_url)
-            csrftoken = client.cookies['csrftoken']
+            self.client.get(login_url)
+            csrftoken = self.client.cookies['csrftoken']
             login_data = {'username': username, 'password': password, 'csrfmiddlewaretoken': csrftoken}
 
-            response = client.post(login_url, data=login_data)
+            response = self.client.post(login_url, data=login_data)
             success_text = "Logout from {}".format(username)
 
             print(response)
@@ -219,6 +207,7 @@ class Login(QDialog):
 
                 print("Logged in")
                 self.close()
+                return username
 
             else:
 
@@ -245,6 +234,7 @@ class Widget(QWidget):
         version = output['Version']
         date = datetime.datetime.strptime(output['Date'], '%Y-%m-%d')
         used_key = output["Used key"]
+        username = output['User']
 
     def __init__(self):
         super().__init__()
@@ -254,21 +244,19 @@ class Widget(QWidget):
         self.used_key_label.setText('Using "{}" key to fish'.format(self.used_key))
         self.data_stop.setEnabled(False)
 
-        if not self.authorize_user():
-            login = Login()
-            login.exec_()
-
-            with open("config.txt", "r") as f:
-                output = json.loads(f.read())
-                self.username = output["User"]
-
         self.update_check()
+        self.authorize_user()
 
         # Try finding score file
         self.score_file = "Data\\frames.npy"
         if os.path.exists(self.score_file):
-            score = sum(list(np.load(self.score_file)))
-            self.label.setText("Score: {} ({})".format(str(score), self.username))
+            self.score = sum(list(np.load(self.score_file)))
+            self.label.setText("Score: {} (loading)".format(str(self.score))) # Colocar gif aqui
+            print(self.label.height(), self.label.width())
+
+        loading_icon = QtGui.QMovie('iconresized.gif')
+        self.label.setMovie(loading_icon)
+        loading_icon.start()
 
         self.data_start.clicked.connect(self.data_start_action)
         self.data_stop.clicked.connect(self.data_stop_action)
@@ -405,36 +393,84 @@ class Widget(QWidget):
             self.label.setText("Score: {} ({})".format(str(score), self.username))
 
     def authorize_user(self):
+
+        with open('config.txt', 'r') as f:
+            output = json.loads(f.read())
+            username = output['User']
+            password = output['Password']
+
+        # Thread:
+        self.login_thread = QThread()
+        self.login_worker = LoginWorker(username, password)
+        self.login_worker.moveToThread(self.login_thread)
+
+        self.login_worker.finished.connect(self.login_thread.quit)  # connect the workers finished signal to stop thread
+        self.login_worker.finished.connect(self.login_worker.deleteLater)  # connect the workers finished signal to clean up worker
+        self.login_thread.finished.connect(self.login_thread.deleteLater)  # connect threads finished signal to clean up thread
+
+        self.login_thread.started.connect(self.login_worker.do_work)
+        self.login_thread.finished.connect(self.login_worker.stop)
+
+        self.login_worker.result.connect(self.login_control)  # connect the workers finished signal to stop thread
+
+        self.login_thread.start()
+
+    def login_control(self, results):
+        print(results)
+        if results['Logged']:
+            self.username = results['Username']
+            self.label.setText("Score: {} ({})".format(str(self.score), self.username))
+        else:
+            self.label.setText("Score: {} (offline)".format(str(self.score)))
+            self.username = AccountManager().login()
+            self.label.setText("Score: {} ({})".format(str(self.score), self.username))
+
+class LoginWorker(QObject):
+    result = pyqtSignal(dict)
+    finished = pyqtSignal()
+
+    def __init__(self, username, password, parent=None):
+        QObject.__init__(self, parent=parent)
+        self.password = password
+        self.username = username
+        self.continue_run = True
+
+    @pyqtSlot()
+    def do_work(self):
+
         max_retries = 2
         login_url = "http://127.0.0.1:8000/accounts/login/?next=/home/"
 
-        with open("config.txt", 'r') as f:
-            output = json.loads(f.read())
-            self.username = output['User']
-            password = output['Password']
+        while self.continue_run:
 
-        try:
-            client = requests.Session()
-            adapter = requests.adapters.HTTPAdapter(max_retries=max_retries)
-            # client.mount('https://', adapter)
-            client.mount('http://', adapter)
+            try:
+                client = requests.Session()
+                adapter = requests.adapters.HTTPAdapter(max_retries=max_retries)
+                client.mount('http://', adapter) # client.mount('https://', adapter)
 
-            client.get(login_url)
-            csrftoken = client.cookies['csrftoken']
-            login_data = {'username': self.username, 'password': password, 'csrfmiddlewaretoken': csrftoken}
+                client.get(login_url)
+                csrftoken = client.cookies['csrftoken']
+                login_data = {'username': self.username, 'password': self.password, 'csrfmiddlewaretoken': csrftoken}
 
-            response = client.post(login_url, data=login_data)
-            success_text = "Logout from {}".format(self.username)
+                response = client.post(login_url, data=login_data)
+                success_text = "Logout from {}".format(self.username)
 
-            if success_text in str(response.content):
-                return True
-            else:
-                return False
+                if success_text in str(response.content):
+                    self.finished.emit()
+                    self.continue_run = False
+                    self.result.emit({"Logged": True, "Username": self.username})
 
-        except Exception as e:
-            print(e)
-            return False
+                else:
+                    self.result.emit({"Logged": False})
+                    self.finished.emit()
+                    self.continue_run = False
 
+            except Exception as e:
+                print(e)
+                QThread.sleep(60)
+
+    def stop(self):
+        self.continue_run = False
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
