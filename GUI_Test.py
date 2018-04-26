@@ -148,17 +148,16 @@ class Login(QDialog):
         email = self.create_email.text()
         self.create_resized = False
 
-
-        client = requests.Session()
-        adapter = requests.adapters.HTTPAdapter(max_retries=max_retries)
-        # client.mount('https://', adapter)
-        client.mount('http://', adapter)
-
-        client.get(create_account_url)
-        csrftoken = client.cookies['csrftoken']
-        login_data = {'username': username, 'password1': password1, 'password2': password2, 'email': email, 'csrfmiddlewaretoken': csrftoken}
-
         try:
+            client = requests.Session()
+            adapter = requests.adapters.HTTPAdapter(max_retries=max_retries)
+            # client.mount('https://', adapter)
+            client.mount('http://', adapter)
+
+            client.get(create_account_url)
+            csrftoken = client.cookies['csrftoken']
+            login_data = {'username': username, 'password1': password1, 'password2': password2, 'email': email, 'csrfmiddlewaretoken': csrftoken}
+
             response = client.post(create_account_url, data=login_data)
             success_text = "Logout from {}".format(username)
 
@@ -193,16 +192,16 @@ class Login(QDialog):
         username = self.usernameLineEdit.text()
         password = self.passwordLineEdit.text()
 
-        client = requests.Session()
-        adapter = requests.adapters.HTTPAdapter(max_retries=max_retries)
-        # client.mount('https://', adapter)
-        client.mount('http://', adapter)
-
-        client.get(login_url)
-        csrftoken = client.cookies['csrftoken']
-        login_data = {'username': username, 'password': password, 'csrfmiddlewaretoken': csrftoken}
-
         try:
+            client = requests.Session()
+            adapter = requests.adapters.HTTPAdapter(max_retries=max_retries)
+            # client.mount('https://', adapter)
+            client.mount('http://', adapter)
+
+            client.get(login_url)
+            csrftoken = client.cookies['csrftoken']
+            login_data = {'username': username, 'password': password, 'csrfmiddlewaretoken': csrftoken}
+
             response = client.post(login_url, data=login_data)
             success_text = "Logout from {}".format(username)
 
@@ -414,16 +413,16 @@ class Widget(QWidget):
             self.username = output['User']
             password = output['Password']
 
-        client = requests.Session()
-        adapter = requests.adapters.HTTPAdapter(max_retries=max_retries)
-        # client.mount('https://', adapter)
-        client.mount('http://', adapter)
-
-        client.get(login_url)
-        csrftoken = client.cookies['csrftoken']
-        login_data = {'username': self.username, 'password': password, 'csrfmiddlewaretoken': csrftoken}
-
         try:
+            client = requests.Session()
+            adapter = requests.adapters.HTTPAdapter(max_retries=max_retries)
+            # client.mount('https://', adapter)
+            client.mount('http://', adapter)
+
+            client.get(login_url)
+            csrftoken = client.cookies['csrftoken']
+            login_data = {'username': self.username, 'password': password, 'csrfmiddlewaretoken': csrftoken}
+
             response = client.post(login_url, data=login_data)
             success_text = "Logout from {}".format(self.username)
 
