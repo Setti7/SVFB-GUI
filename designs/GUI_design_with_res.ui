@@ -6,20 +6,20 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>277</width>
-    <height>350</height>
+    <width>294</width>
+    <height>400</height>
    </rect>
   </property>
   <property name="minimumSize">
    <size>
-    <width>277</width>
+    <width>227</width>
     <height>300</height>
    </size>
   </property>
   <property name="maximumSize">
    <size>
-    <width>277</width>
-    <height>350</height>
+    <width>400</width>
+    <height>400</height>
    </size>
   </property>
   <property name="windowTitle">
@@ -37,10 +37,29 @@
        <property name="text">
         <string>Stardew Valley Fishing Bot - Data Collecting</string>
        </property>
+       <property name="alignment">
+        <set>Qt::AlignCenter</set>
+       </property>
       </widget>
      </item>
      <item>
-      <widget class="Line" name="line">
+      <widget class="QLabel" name="v_label">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="text">
+        <string>v1.0</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignCenter</set>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="Line" name="line_3">
        <property name="orientation">
         <enum>Qt::Horizontal</enum>
        </property>
@@ -49,40 +68,55 @@
      <item>
       <layout class="QHBoxLayout" name="horizontalLayout_3">
        <item>
-        <widget class="QLabel" name="label">
+        <widget class="QLabel" name="username_label">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
          <property name="text">
-          <string>Your score: 000</string>
+          <string>username</string>
          </property>
         </widget>
        </item>
        <item>
-        <widget class="Line" name="line_2">
+        <widget class="Line" name="line">
          <property name="orientation">
           <enum>Qt::Vertical</enum>
          </property>
         </widget>
        </item>
-       <item alignment="Qt::AlignRight">
-        <widget class="QLabel" name="v_label">
+       <item>
+        <widget class="QLabel" name="score_label">
          <property name="text">
-          <string>v1.0</string>
+          <string>Score: 000</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
          </property>
         </widget>
        </item>
       </layout>
      </item>
      <item>
-      <spacer name="verticalSpacer_2">
-       <property name="orientation">
-        <enum>Qt::Vertical</enum>
+      <widget class="QLabel" name="icons_label">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
        </property>
-       <property name="sizeHint" stdset="0">
+       <property name="minimumSize">
         <size>
-         <width>20</width>
-         <height>40</height>
+         <width>0</width>
+         <height>50</height>
         </size>
        </property>
-      </spacer>
+       <property name="text">
+        <string/>
+       </property>
+      </widget>
      </item>
      <item>
       <layout class="QHBoxLayout" name="horizontalLayout">

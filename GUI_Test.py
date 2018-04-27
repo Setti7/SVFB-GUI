@@ -2,8 +2,8 @@ import json, datetime, requests, re
 from urllib.request import urlopen
 from urllib.error import URLError
 import sys, numpy as np, os, webbrowser
-from PyQt5.QtWidgets import QWidget, QApplication, QMessageBox, QDialog, QGraphicsPixmapItem
-from PyQt5.QtCore import QThread, QObject, pyqtSignal, pyqtSlot
+from PyQt5.QtWidgets import QWidget, QApplication, QMessageBox, QDialog
+from PyQt5.QtCore import QThread, QObject, pyqtSignal, pyqtSlot, Qt
 from PyQt5 import QtGui, QtCore
 from PyQt5.uic import loadUi
 import save_data
@@ -80,7 +80,7 @@ class ChangeKey(QDialog):
         self.close_btn.clicked.connect(self.close)
 
     def initUI(self):
-        loadUi('key_used_dialog.ui', self)
+        loadUi('designs\\key_used_dialog.ui', self)
         #self.exec_()
 
     def save(self):
@@ -109,7 +109,7 @@ class AccountManager(QDialog):
         self.exec_()
 
     def initUI(self):
-        loadUi('login_dialog.ui', self)
+        loadUi('designs\\login_dialog.ui', self)
 
         self.setWindowIcon(QtGui.QIcon('logo\\logo.png'))
         self.login_btn.clicked.connect(self.login)
@@ -242,7 +242,9 @@ class Widget(QWidget):
         self.setWindowIcon(QtGui.QIcon('logo\\logo.png'))
         self.v_label.setText("v{}".format(self.version))
         self.used_key_label.setText('Using "{}" key to fish'.format(self.used_key))
+        self.username_label.setText("Connecting")
         self.data_stop.setEnabled(False)
+        print(self.icons_label.height(), self.icons_label.width())
 
         self.update_check()
         self.authorize_user()
@@ -251,12 +253,11 @@ class Widget(QWidget):
         self.score_file = "Data\\frames.npy"
         if os.path.exists(self.score_file):
             self.score = sum(list(np.load(self.score_file)))
-            self.label.setText("Score: {} (loading)".format(str(self.score))) # Colocar gif aqui
-            print(self.label.height(), self.label.width())
+            self.score_label.setText("Score: {}".format(str(self.score))) # Colocar gif aqui
 
-        loading_icon = QtGui.QMovie('iconresized.gif')
-        self.label.setMovie(loading_icon)
-        loading_icon.start()
+        # Icons
+        self.fish_animation = QtGui.QMovie('animations\\offline_angler.gif')
+        self.icons_label.setAlignment(Qt.AlignCenter)
 
         self.data_start.clicked.connect(self.data_start_action)
         self.data_stop.clicked.connect(self.data_stop_action)
@@ -264,7 +265,7 @@ class Widget(QWidget):
         self.change_key_btn.clicked.connect(self.change_key)
 
     def initUI(self):
-        loadUi('GUI_design_with_res.ui', self)
+        loadUi('designs\\GUI_design_with_res.ui', self)
         self.show()
 
     def go_to_website(self):
@@ -333,7 +334,7 @@ class Widget(QWidget):
 
             updateBox.setEscapeButton(QMessageBox.Close)
             updateBox.addButton(QMessageBox.Close)
-            self.v_label.setText("v{} REQUIRED".format(new_version))
+            self.v_label.setText("v{} (v{} REQUIRED)".format(self.version, new_version))
 
             ok = updateBox.addButton(QMessageBox.Ok)
             ok.clicked.connect(self.go_to_update_page)
@@ -356,6 +357,10 @@ class Widget(QWidget):
         self.res_selection.setEnabled(False)
         self.zoom_levelSpinBox.setEnabled(False)
         self.change_key_btn.setEnabled(False)
+
+        # Icon
+        self.icons_label.setMovie(self.fish_animation)
+        self.fish_animation.start()
 
         print("Zoom: {}".format(self.zoom_levelSpinBox.text()))
 
@@ -385,12 +390,15 @@ class Widget(QWidget):
         self.zoom_levelSpinBox.setEnabled(True)
         self.change_key_btn.setEnabled(True)
 
+        # Icon
+        self.icons_label.clear()
+
         self.stop_signal.emit()  # emit the finished signal on stop
         print('Data stopped')
 
         if os.path.exists(self.score_file):
             score = sum(list(np.load(self.score_file)))
-            self.label.setText("Score: {} ({})".format(str(score), self.username))
+            self.score_label.setText("Score: {}".format(str(score)))
 
     def authorize_user(self):
 
@@ -419,11 +427,14 @@ class Widget(QWidget):
         print(results)
         if results['Logged']:
             self.username = results['Username']
-            self.label.setText("Score: {} ({})".format(str(self.score), self.username))
+            self.username_label.setText(self.username)
+
         else:
-            self.label.setText("Score: {} (offline)".format(str(self.score)))
+            self.username_label.setText("Not logged")
             self.username = AccountManager().login()
-            self.label.setText("Score: {} ({})".format(str(self.score), self.username))
+            self.username_label.setText(self.username)
+
+
 
 class LoginWorker(QObject):
     result = pyqtSignal(dict)
@@ -467,7 +478,7 @@ class LoginWorker(QObject):
 
             except Exception as e:
                 print(e)
-                QThread.sleep(60)
+                QThread.sleep(30)
 
     def stop(self):
         self.continue_run = False

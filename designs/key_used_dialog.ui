@@ -39,8 +39,26 @@
        </item>
        <item>
         <widget class="QLineEdit" name="change_key">
+         <property name="toolTip">
+          <string/>
+         </property>
+         <property name="inputMethodHints">
+          <set>Qt::ImhNone</set>
+         </property>
          <property name="text">
           <string/>
+         </property>
+         <property name="maxLength">
+          <number>1</number>
+         </property>
+         <property name="frame">
+          <bool>true</bool>
+         </property>
+         <property name="placeholderText">
+          <string/>
+         </property>
+         <property name="cursorMoveStyle">
+          <enum>Qt::LogicalMoveStyle</enum>
          </property>
         </widget>
        </item>

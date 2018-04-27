@@ -1,4 +1,4 @@
-import requests, numpy as np
+import requests
 
 login_url = "http://127.0.0.1:8000/accounts/login/"
 MAX_RETRIES = 2
