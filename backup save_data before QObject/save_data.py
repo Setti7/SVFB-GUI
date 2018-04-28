@@ -2,13 +2,12 @@ import numpy as np
 from PIL import ImageGrab
 import cv2
 import time
-from PyQt5.QtCore import QObject, pyqtSignal
 from getkeys import key_check
 import os, json
 import send_files
 
-# upper and lower bound for the color detection (the way I came up with to find the contour of the green rectangle)
-upperBound_s1 = np.array([200, 150, 255])
+upperBound_s1 = np.array([200, 150,
+                          255])  # upper and lower bound for the color detection (the way I came up with to find the contour of the green rectangle)
 lowerBound_s1 = np.array([130, 0, 85])
 
 upperBound_fish = np.array([50, 255, 197])
@@ -20,8 +19,8 @@ x = 105  # If I need to translate the areas of interest easily and equally
 y = 75
 
 
-def fishing_region(img_rgb, region_template_gray, w, h):
-    # the image format is actually BGR because of Opencv, but I didn't bother changing all the names
+def fishing_region(img_rgb, region_template_gray, w,
+                   h):  # the image format is actually BGR because of Opencv, but I didn't bother changing all the names
 
     region_detected = False
     floor_height = 460
@@ -166,117 +165,140 @@ def process_img(img_rgb, green_bar_win):
 
     return img_rgb, rect_center_heigth, lowest_point
 
-class SaveData(QObject):
-    score = pyqtSignal(int)
-    data_response_code = pyqtSignal(int)
+run = True
 
-    def __init__(self, parent=None):
-        QObject.__init__(self, parent=parent)
-        self.run = True
+def main(res=[1280, 720], key="C", autosend=False):
+    print("Running on: {}x{}".format(res[0], res[1]))
+    print("Using {} key".format(key))
+    print("Autosend: {}".format(autosend))
+    ###################################################################################################
 
-    def main(self, res=(1280, 720), key="C", autosend=False):
-        print("Running on: {}x{}".format(res[0], res[1]))
-        print("Using {} key".format(key))
-        print("Autosend: {}".format(autosend))
-        ###################################################################################################
+    upperBound_s1 = np.array([200, 150,
+                              255])  # upper and lower bound for the color detection (the way I came up with to find the contour of the green rectangle)
+    lowerBound_s1 = np.array([130, 0, 85])
 
-        file_name = 'Data\\training_data.npy'
+    upperBound_fish = np.array([50, 255, 197])
+    lowerBound_fish = np.array([20, 215, 147])
 
-        if os.path.isfile(file_name):
-            print("Training file exists, loading previos data!")
-            training_data = list(np.load(file_name))
+    x_center_calibration_value = 10  # Makes the x coordinate of the center of the fish and of the rectangle to be in the right place
 
-        else:
-            print("Training file does not exist, starting fresh!")
-            training_data = []
+    x = 105  # If I need to translate the areas of interest easily and equally
+    y = 75
 
-        frame_file = 'Data\\frames.npy'
+    file_name = 'Data\\training_data.npy'
 
-        if os.path.isfile(frame_file):
-            print("Frames file exists, loading previos data!")
-            frames = list(np.load(frame_file))
+    if os.path.isfile(file_name):
+        print("Training file exists, loading previos data!")
+        training_data = list(np.load(file_name))
 
-        else:
-            print("Frames file does not exist, starting fresh!")
-            frames = []
+    else:
+        print("Training file does not exist, starting fresh!")
+        training_data = []
 
-        ###################################################################################################
+    frame_file = 'Data\\frames.npy'
 
-        region_template = cv2.imread('Images\\fishing region 3.png')
-        region_template_gray = cv2.cvtColor(region_template, cv2.COLOR_BGR2GRAY)
-        wr, hr = region_template_gray.shape[::-1]
+    if os.path.isfile(frame_file):
+        print("Frames file exists, loading previos data!")
+        frames = list(np.load(frame_file))
 
-        was_fishing = False
+    else:
+        print("Frames file does not exist, starting fresh!")
+        frames = []
 
-        while self.run:
+    ###################################################################################################
 
-            res_x, res_y = res
-            screen = np.array(ImageGrab.grab(bbox=(0, 40, res_x, res_y+40 )))
+    region_template = cv2.imread('Images\\fishing region 3.png')
+    region_template_gray = cv2.cvtColor(region_template, cv2.COLOR_BGR2GRAY)
+    wr, hr = region_template_gray.shape[::-1]
 
-            fishing, green_bar_window, floor_height = fishing_region(screen, region_template_gray, wr, hr)
+    was_fishing = False
+    last_time = time.time()
 
-            if fishing:
-                contour, green_bar_height, lowest_point = process_img(screen,
-                                                                      green_bar_window)  # process every frame (would be nice if it could process every 5 or so frames, so the process becomes faster).
+    while run:
 
-                fish_detected, fish_height, searching_nemo = fish(green_bar_window)
+        res_x, res_y = res
+        screen = np.array(ImageGrab.grab(bbox=(0, 40, res_x, res_y+40 )))  # x = 1280, y = 760
 
-                d_rect_fish = fish_height - green_bar_height  # if result is + : fish is below the green bar, if result is - : fish is above the green bar
-                d_rect_floor = floor_height - lowest_point  # always +
+        # print('Frame took {} ms'.format(np.round((time.time()-last_time)*1000, 2)))
+        # print('FPS: ', np.round(1/(time.time()-last_time), 1))
 
-                key_pressed = key_check(key)
+        last_time = time.time()
 
-                data = [d_rect_fish, d_rect_floor, key_pressed]  # example key pressed: [231, 456, 1]
+        fishing, green_bar_window, floor_height = fishing_region(screen, region_template_gray, wr, hr)
 
-                training_data.append(data)
-                #print(data)
+        if fishing:
+            contour, green_bar_height, lowest_point = process_img(screen,
+                                                                  green_bar_window)  # process every frame (would be nice if it could process every 5 or so frames, so the process becomes faster).
 
-                was_fishing = True
+            fish_detected, fish_height, searching_nemo = fish(green_bar_window)
 
-            if not fishing and was_fishing:
+            d_rect_fish = fish_height - green_bar_height  # if result is + : fish is below the green bar, if result is - : fish is above the green bar
+            d_rect_floor = floor_height - lowest_point  # always +
 
-                if len(frames) == 0:
-                    # print('list of frames is new')
-                    frames.append(len(training_data))
-                    print("Frames analysed:\t", len(training_data))
+            # keys = key_check()
 
-                    np.save(frame_file, frames)
+            key_pressed = key_check(key)
 
-                    print("Saving...")
-                    np.save(file_name, training_data)
+            data = [d_rect_fish, d_rect_floor, key_pressed]  # example key pressed: [231, 456, 1]
 
-                    was_fishing = False
-                    self.score.emit(sum(frames))
+            training_data.append(data)
+            #print(data)
 
-                    if autosend:
-                        with open("config.txt", 'r') as f:
-                            output = json.loads(f.read())
-                        BASE_URL = 'http://192.168.1.102'
-                        response_code = send_files.send_data(BASE_URL, output['User'], output['Password'])
-                        self.data_response_code.emit(response_code)
+            was_fishing = True
 
-                else:
-                    frame = len(training_data) - sum(frames)
-                    frames.append(frame)
-                    print("Frames analysed:\t", frames[-1])
+            # print("G-L:", lowest_point)
+            # print("FLoor", floor_height)
+            # print("R/Fish:\t", data[0], "R/Floor:\t", data[1], "C pressed:\t", data[2])
 
-                    np.save(frame_file, frames)
+        if not fishing and was_fishing:
 
-                    print("Saving...")
-                    np.save(file_name, training_data)
+            if len(frames) == 0:
+                # print('list of frames is new')
+                frames.append(len(training_data))
+                # print(len(training_data))
+                print("Frames analysed:\t", len(training_data))
 
-                    was_fishing = False
-                    self.score.emit(sum(frames))
+                np.save(frame_file, frames)
 
-                    if autosend:
-                        with open("config.txt", 'r') as f:
-                            output = json.loads(f.read())
-                        BASE_URL = 'http://192.168.1.102'
-                        response_code = send_files.send_data(BASE_URL, output['User'], output['Password'])
-                        self.data_response_code.emit(response_code)
+                # print(frames)
+                print("Saving...")
+                np.save(file_name, training_data)
 
-    def stop(self):
-        self.run = False
+                if autosend:
+                    with open("config.txt", 'r') as f:
+                        output = json.loads(f.read())
+                    BASE_URL = 'http://192.168.1.102'
+                    auto_response = send_files.send_data(BASE_URL, output['User'], output['Password'])
+
+                was_fishing = False
+
+
+            else:
+                frame = len(training_data) - sum(frames)
+                frames.append(frame)
+                print("Frames analysed:\t", frames[-1])
+
+                np.save(frame_file, frames)
+
+                # print(frames)
+                # print(len(training_data))
+                print("Saving...")
+                np.save(file_name, training_data)
+
+                if autosend:
+                    with open("config.txt", 'r') as f:
+                        output = json.loads(f.read())
+                    BASE_URL = 'http://192.168.1.102'
+                    auto_response = send_files.send_data(BASE_URL, output['User'], output['Password'])
+
+                was_fishing = False
+
+        # cv2.imshow('RGB Region',cv2.cvtColor(green_bar_window, cv2.COLOR_BGR2RGB))
+
+        # if 0xFF == ord('q'):  # cv2.waitKey(25) & : # To close the windows
+        #     cv2.destroyAllWindows()
+        #     break
+
 
 if __name__ == "__main__":
     main(res=[1280, 720])

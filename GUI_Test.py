@@ -6,13 +6,16 @@ from PyQt5.QtWidgets import QWidget, QApplication, QMessageBox, QDialog
 from PyQt5.QtCore import QThread, QObject, pyqtSignal, pyqtSlot, Qt, QTimer
 from PyQt5 import QtGui
 from PyQt5.uic import loadUi
-import save_data, send_files
+import send_files
+from save_data import SaveData
 
 BASE_URL = 'http://192.168.1.102'
 
 
 class Worker(QObject):
     finished = pyqtSignal()  # give worker class a finished signal
+    updated_score = pyqtSignal(int)
+    auto_send_response = pyqtSignal(int)
 
     def __init__(self, key, res, autosend, username=None, password=None, parent=None):
         QObject.__init__(self, parent=parent)
@@ -23,13 +26,25 @@ class Worker(QObject):
         self.username = username
         self.password = password
 
+        self.work = SaveData()
+        self.work.data_response_code.connect(self.response_code_control)
+        self.work.score.connect(self.score_control)
+
+    def response_code_control(self, code):
+        self.auto_send_response.emit(code)
+
+    def score_control(self, score):
+        self.updated_score.emit(score)
+
     def do_work(self):
         res = [int(x_or_y) for x_or_y in self.res.split('x')]
-        save_data.main(res=res, key=self.key, autosend=self.autosend)
+
+        self.work.main(res=res, key=self.key, autosend=self.autosend)
+
         self.finished.emit()  # emit the finished signal when the loop is done
 
     def stop(self):
-        save_data.run = False  # set the run condition to false on stop
+        self.work.stop()
 
 
 class CheckForUpdates(QObject):
@@ -258,8 +273,8 @@ class Widget(QWidget):
         self.used_key_label.setText('Using "{}" key to fish'.format(self.used_key))
         self.score_file = "Data\\frames.npy"
         if os.path.exists(self.score_file):
-            self.score = sum(list(np.load(self.score_file)))
-            self.score_label.setText("Score: {}".format(str(self.score)))
+            score = sum(list(np.load(self.score_file)))
+            self.update_score(score)
 
         # If auto_send config is not checked, let it be unchecked
         if not self.auto_send:
@@ -347,6 +362,17 @@ class Widget(QWidget):
         self.login_thread.start()
 
 
+    # Update Widget elements (maybe this needs to be placed below "start_data" but IDK should try later just test ]
+    # if auto_send check box is working if the game running)
+    def update_key(self, key): # Updating used key for fishing after ChangeKey dialog:
+        self.used_key_label.setText('Using "{}" key'.format(key))
+        self.used_key = key
+
+    def update_score(self, score):
+        self.score = score
+        self.score_label.setText("Score: {}".format(score))
+
+
     # Notification of new version:
     def update_message_box(self, update_info):
 
@@ -398,12 +424,6 @@ class Widget(QWidget):
             self.close()
 
 
-    # Updating used key for fishing after ChangeKey dialog:
-    def update_key(self, key):
-        self.used_key_label.setText('Using "{}" key'.format(key))
-        self.used_key = key
-
-
     # Data processes:
     def data_start_action(self):
         self.data_start.setEnabled(False)
@@ -420,8 +440,6 @@ class Widget(QWidget):
 
         print("Zoom: {}".format(self.zoom_levelSpinBox.text()))
 
-        save_data.run = True
-
         # Thread: __init__
         res = str(self.res_selection.currentText())
 
@@ -436,6 +454,9 @@ class Widget(QWidget):
 
         self.thread.started.connect(self.worker.do_work)
         self.thread.finished.connect(self.worker.stop)
+
+        self.worker.auto_send_response.connect(self.auto_send_response_code_controller)
+        self.worker.updated_score.connect(self.update_score)
 
         self.thread.start()
 
@@ -455,7 +476,7 @@ class Widget(QWidget):
 
         if os.path.exists(self.score_file):
             score = sum(list(np.load(self.score_file)))
-            self.score_label.setText("Score: {}".format(str(score)))
+            self.update_score(score)
 
     def send_data(self):
         with open("config.txt", 'r') as f:
@@ -472,7 +493,21 @@ class Widget(QWidget):
             self.send_status_label.setText('Error! Verify your connection')
             self.send_status_label.setStyleSheet("color: #dc3545;")
 
-        print(self.send_status_label.width(), self.send_status_label.height())
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.send_status_label.clear)
+        self.timer.start(5000)
+
+    def auto_send_response_code_controller(self, code):
+
+        if code == 200:
+            self.send_status_label.setText("Success! Thank you for helping!")
+            self.send_status_label.setStyleSheet("color: #28a745;")
+
+        else:
+            pass
+            self.send_status_label.setText('Error! Verify your connection')
+            self.send_status_label.setStyleSheet("color: #dc3545;")
+
         self.timer = QTimer()
         self.timer.timeout.connect(self.send_status_label.clear)
         self.timer.start(5000)

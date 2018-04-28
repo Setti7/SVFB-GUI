@@ -1,1 +1,1 @@
-{"Version": 0.95, "Date": "2018-04-28", "Used key": "C", "User": "Arlene", "Password": "senha123", "Auto-send": true}
+{"Version": 0.95, "Date": "2018-04-28", "Used key": "C", "User": "andreteste", "Password": "senha123", "Auto-send": true}
