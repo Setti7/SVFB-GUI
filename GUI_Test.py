@@ -1,12 +1,14 @@
-import json, datetime, requests, re
+import json, datetime, requests
 from urllib.request import urlopen
 from urllib.error import URLError
 import sys, numpy as np, os, webbrowser
 from PyQt5.QtWidgets import QWidget, QApplication, QMessageBox, QDialog
-from PyQt5.QtCore import QThread, QObject, pyqtSignal, pyqtSlot, Qt
-from PyQt5 import QtGui, QtCore
+from PyQt5.QtCore import QThread, QObject, pyqtSignal, pyqtSlot, Qt, QTimer
+from PyQt5 import QtGui
 from PyQt5.uic import loadUi
-import save_data
+import save_data, send_files
+
+BASE_URL = 'http://192.168.1.102'
 
 
 class Worker(QObject):
@@ -39,7 +41,7 @@ class CheckForUpdates(QObject):
     @pyqtSlot()
     def do_work(self):
         try:
-            data = urlopen("http://127.0.0.1:8000/version-control").read()
+            data = urlopen(BASE_URL + "/version-control").read()
             output = json.loads(data)
 
             changes = []
@@ -81,7 +83,6 @@ class ChangeKey(QDialog):
 
     def initUI(self):
         loadUi('designs\\key_used_dialog.ui', self)
-        #self.exec_()
 
     def save(self):
         with open("config.txt", "r") as f:
@@ -96,6 +97,7 @@ class ChangeKey(QDialog):
 
 
 class AccountManager(QDialog):
+    user_logged = pyqtSignal(str)
 
     def __init__(self):
         super().__init__()
@@ -104,9 +106,7 @@ class AccountManager(QDialog):
         # Start session:
         self.client = requests.Session()
         self.adapter = requests.adapters.HTTPAdapter(max_retries=2)
-        self.client.mount('http://', self.adapter) # client.mount('https://', adapter)
-
-        self.exec_()
+        self.client.mount('http://', self.adapter)  # client.mount('https://', adapter)
 
     def initUI(self):
         loadUi('designs\\login_dialog.ui', self)
@@ -136,9 +136,8 @@ class AccountManager(QDialog):
             self.create_account_btn.clicked.connect(self.create_account_online)
             self.clicked_first = False
 
-
     def create_account_online(self):
-        create_account_url = "http://127.0.0.1:8000/accounts/create/?next=/home/"
+        create_account_url = BASE_URL + "/accounts/create/?next=/home/"
 
         username = self.create_username.text()
         password1 = self.create_password.text()
@@ -149,12 +148,11 @@ class AccountManager(QDialog):
         try:
             self.client.get(create_account_url)
             csrftoken = self.client.cookies['csrftoken']
-            login_data = {'username': username, 'password1': password1, 'password2': password2, 'email': email, 'csrfmiddlewaretoken': csrftoken}
+            login_data = {'username': username, 'password1': password1, 'password2': password2, 'email': email,
+                          'csrfmiddlewaretoken': csrftoken}
 
             response = self.client.post(create_account_url, data=login_data)
             success_text = "Logout from {}".format(username)
-
-            print("response (account creation) {}".format(response))
 
             if success_text in str(response.content):
 
@@ -166,25 +164,27 @@ class AccountManager(QDialog):
                 with open("config.txt", "w") as f:
                     json.dump(output, f)
 
-                print("Logged in")
+                self.user_logged.emit(username)
                 self.close()
+
 
             else:
 
                 self.create_password.clear()
                 self.create_password_confirm.clear()
-                self.create_account_error.setText("""An error ocurred. Please try again.<br>If the error persists, create the account <a href="http://127.0.0.1:8000/accounts/create/?next=/home/"><span style=" text-decoration: underline; color:#0000ff;">here</span></a>""")
+                self.create_account_error.setText(
+                    """An error ocurred. Please try again.<br>If the error persists, create the account <a href="http://127.0.0.1:8000/accounts/create/?next=/home/"><span style=" text-decoration: underline; color:#0000ff;">here</span></a>""")
 
         except Exception as e:
             print(e)
 
     def login(self):
-        login_url = "http://127.0.0.1:8000/accounts/login/?next=/home/"
+        login_url = BASE_URL + "/accounts/login/?next=/home/"
 
         username = self.usernameLineEdit.text()
         password = self.passwordLineEdit.text()
 
-        try:
+        try:  # Change this to use the LOGINWORKER, so it is less code
 
             self.client.get(login_url)
             csrftoken = self.client.cookies['csrftoken']
@@ -205,9 +205,8 @@ class AccountManager(QDialog):
                 with open("config.txt", "w") as f:
                     json.dump(output, f)
 
-                print("Logged in")
+                self.user_logged.emit(username)
                 self.close()
-                return username
 
             else:
 
@@ -244,7 +243,9 @@ class Widget(QWidget):
         self.used_key_label.setText('Using "{}" key to fish'.format(self.used_key))
         self.username_label.setText("Connecting")
         self.data_stop.setEnabled(False)
-        print(self.icons_label.height(), self.icons_label.width())
+        self.send_btn.setText("Can't send data while offline")
+        self.send_btn.setEnabled(False)
+        self.loading_icon = QtGui.QMovie('animations\\loading_icon.gif')
 
         self.update_check()
         self.authorize_user()
@@ -253,15 +254,16 @@ class Widget(QWidget):
         self.score_file = "Data\\frames.npy"
         if os.path.exists(self.score_file):
             self.score = sum(list(np.load(self.score_file)))
-            self.score_label.setText("Score: {}".format(str(self.score))) # Colocar gif aqui
+            self.score_label.setText("Score: {}".format(str(self.score)))  # Colocar gif aqui
 
         # Icons
-        self.fish_animation = QtGui.QMovie('animations\\offline_angler.gif')
+        self.fish_animation = QtGui.QMovie('animations\\loading_icon.gif')
         self.icons_label.setAlignment(Qt.AlignCenter)
 
         self.data_start.clicked.connect(self.data_start_action)
         self.data_stop.clicked.connect(self.data_stop_action)
-        self.send_btn.clicked.connect(self.go_to_website)
+        # self.send_btn.clicked.connect(self.go_to_website)
+        self.send_btn.clicked.connect(self.send_data)
         self.change_key_btn.clicked.connect(self.change_key)
 
     def initUI(self):
@@ -269,10 +271,30 @@ class Widget(QWidget):
         self.show()
 
     def go_to_website(self):
-        webbrowser.open("http://127.0.0.1:8000/ranking")
+        webbrowser.open(BASE_URL + "/ranking")
+
+    def send_data(self):
+        with open("config.txt", 'r') as f:
+            output = json.loads(f.read())
+
+        response = send_files.send_data(BASE_URL, output['User'], output['Password'])
+
+        if response == 200:
+            self.send_status_label.setText("Success! Thank you for helping!")
+            self.send_status_label.setStyleSheet("color: #28a745;")
+
+        else:
+            pass
+            self.send_status_label.setText('Error! Verify your connection')
+            self.send_status_label.setStyleSheet("color: #dc3545;")
+
+        print(self.send_status_label.width(), self.send_status_label.height())
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.send_status_label.clear)
+        self.timer.start(5000)
 
     def go_to_update_page(self):
-        webbrowser.open("http://127.0.0.1:8000/home")  # Change to download page
+        webbrowser.open(BASE_URL + "/home")  # Change to download page
 
     def update_check(self):
         self.check_thread = QThread()
@@ -307,7 +329,7 @@ class Widget(QWidget):
             updateBox.setWindowIcon(QtGui.QIcon('logo\\logo.png'))
 
             text = """Version available: {1}\n\n{2}""".format(current_version, new_version,
-                                                                                             changes)
+                                                              changes)
             updateBox.setDetailedText(text)
 
             updateBox.setEscapeButton(QMessageBox.Close)
@@ -357,6 +379,7 @@ class Widget(QWidget):
         self.res_selection.setEnabled(False)
         self.zoom_levelSpinBox.setEnabled(False)
         self.change_key_btn.setEnabled(False)
+        self.send_btn.setEnabled(False)
 
         # Icon
         self.icons_label.setMovie(self.fish_animation)
@@ -389,6 +412,7 @@ class Widget(QWidget):
         self.res_selection.setEnabled(True)
         self.zoom_levelSpinBox.setEnabled(True)
         self.change_key_btn.setEnabled(True)
+        self.send_btn.setEnabled(True)
 
         # Icon
         self.icons_label.clear()
@@ -413,8 +437,10 @@ class Widget(QWidget):
         self.login_worker.moveToThread(self.login_thread)
 
         self.login_worker.finished.connect(self.login_thread.quit)  # connect the workers finished signal to stop thread
-        self.login_worker.finished.connect(self.login_worker.deleteLater)  # connect the workers finished signal to clean up worker
-        self.login_thread.finished.connect(self.login_thread.deleteLater)  # connect threads finished signal to clean up thread
+        self.login_worker.finished.connect(
+            self.login_worker.deleteLater)  # connect the workers finished signal to clean up worker
+        self.login_thread.finished.connect(
+            self.login_thread.deleteLater)  # connect threads finished signal to clean up thread
 
         self.login_thread.started.connect(self.login_worker.do_work)
         self.login_thread.finished.connect(self.login_worker.stop)
@@ -428,12 +454,19 @@ class Widget(QWidget):
         if results['Logged']:
             self.username = results['Username']
             self.username_label.setText(self.username)
+            self.send_btn.setEnabled(True)
+            self.send_btn.setText("Send data")
 
         else:
-            self.username_label.setText("Not logged")
-            self.username = AccountManager().login()
-            self.username_label.setText(self.username)
+            self.accnt_manager = AccountManager()
+            self.accnt_manager.user_logged.connect(self.user_has_logged)
 
+            self.accnt_manager.exec_()
+
+    def user_has_logged(self, username):
+        self.username_label.setText(username)
+        self.send_btn.setEnabled(True)
+        self.send_btn.setText("Send data")
 
 
 class LoginWorker(QObject):
@@ -450,14 +483,14 @@ class LoginWorker(QObject):
     def do_work(self):
 
         max_retries = 2
-        login_url = "http://127.0.0.1:8000/accounts/login/?next=/home/"
+        login_url = BASE_URL + "/accounts/login/?next=/home/"
 
         while self.continue_run:
 
             try:
                 client = requests.Session()
                 adapter = requests.adapters.HTTPAdapter(max_retries=max_retries)
-                client.mount('http://', adapter) # client.mount('https://', adapter)
+                client.mount('http://', adapter)  # client.mount('https://', adapter)
 
                 client.get(login_url)
                 csrftoken = client.cookies['csrftoken']
@@ -482,6 +515,7 @@ class LoginWorker(QObject):
 
     def stop(self):
         self.continue_run = False
+
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
