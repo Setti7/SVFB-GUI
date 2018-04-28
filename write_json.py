@@ -6,6 +6,7 @@ data = {"Version": 1.0,
         "Used key": key,
         "User": "Anon",
         "Password": "idk",
+        "Auto-send": True,
         }
 
 with open('config.txt', 'w') as f:

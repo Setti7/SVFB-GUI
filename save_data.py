@@ -4,6 +4,7 @@ import cv2
 import time
 from getkeys import key_check
 import os
+import send_files
 
 upperBound_s1 = np.array([200, 150,
                           255])  # upper and lower bound for the color detection (the way I came up with to find the contour of the green rectangle)
@@ -165,9 +166,10 @@ def process_img(img_rgb, green_bar_win):
     return img_rgb, rect_center_heigth, lowest_point
 
 run = True
-def main(res=[1280, 720], key="C"):
+def main(res=[1280, 720], key="C", autosend=False):
     print("Running on: {}x{}".format(res[0], res[1]))
     print("Using {} key".format(key))
+    print("Autosend: {}".format(autosend))
     ###################################################################################################
 
     upperBound_s1 = np.array([200, 150,
@@ -261,7 +263,9 @@ def main(res=[1280, 720], key="C"):
                 # print(frames)
                 print("Saving...")
                 np.save(file_name, training_data)
+                # SEND FILES JUST LIKE THE GUI DOES
                 was_fishing = False
+
 
             else:
                 frame = len(training_data) - sum(frames)

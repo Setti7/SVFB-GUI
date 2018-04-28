@@ -36,5 +36,7 @@ def send_data(BASE_URL, username, password):
     except Exception as e:
         print(e)  # No errors raised
 
+#def auto_send(BASE_URL, username, password): #Starts a thread to send data, the closes the thread
+
 if __name__ == "__main__":
     send_data('test1', 'senha123')

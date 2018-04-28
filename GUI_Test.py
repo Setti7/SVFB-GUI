@@ -14,17 +14,18 @@ BASE_URL = 'http://192.168.1.102'
 class Worker(QObject):
     finished = pyqtSignal()  # give worker class a finished signal
 
-    def __init__(self, res, parent=None):
+    def __init__(self, key, res, autosend, username=None, password=None, parent=None):
         QObject.__init__(self, parent=parent)
-        self.res = res
 
-        with open("config.txt", "r") as f:
-            output = json.loads(f.read())
-            self.key = output["Used key"]
+        self.res = res
+        self.autosend = autosend
+        self.key = key
+        self.username = username
+        self.password = password
 
     def do_work(self):
         res = [int(x_or_y) for x_or_y in self.res.split('x')]
-        save_data.main(res, self.key)
+        save_data.main(res=res, key=self.key, autosend=self.autosend)
         self.finished.emit()  # emit the finished signal when the loop is done
 
     def stop(self):
@@ -72,6 +73,7 @@ class CheckForUpdates(QObject):
 
 
 class ChangeKey(QDialog):
+    new_key = pyqtSignal(str)
 
     def __init__(self):
         super().__init__()
@@ -80,6 +82,7 @@ class ChangeKey(QDialog):
 
         self.save_btn.clicked.connect(self.save)
         self.close_btn.clicked.connect(self.close)
+        self.change_key.setFocus(True)
 
     def initUI(self):
         loadUi('designs\\key_used_dialog.ui', self)
@@ -93,6 +96,7 @@ class ChangeKey(QDialog):
         with open("config.txt", "w") as f:
             json.dump(output, f)
 
+        self.new_key.emit(new_key)
         self.close()
 
 
@@ -234,69 +238,72 @@ class Widget(QWidget):
         date = datetime.datetime.strptime(output['Date'], '%Y-%m-%d')
         used_key = output["Used key"]
         username = output['User']
+        auto_send = output['Auto-send']
 
     def __init__(self):
         super().__init__()
         self.initUI()
+
+        # Starting threads for startup verification
+        self.startup_update_check()
+        self.startup_authorize_user()
+
+        # Icons:
         self.setWindowIcon(QtGui.QIcon('logo\\logo.png'))
+        self.loading_icon = QtGui.QMovie('animations\\loading_icon.gif')
+        self.fish_animation = QtGui.QMovie('animations\\loading_icon.gif')
+
+        # Setting default labels and texts:
         self.v_label.setText("v{}".format(self.version))
         self.used_key_label.setText('Using "{}" key to fish'.format(self.used_key))
-        self.username_label.setText("Connecting")
-        self.data_stop.setEnabled(False)
-        self.send_btn.setText("Can't send data while offline")
-        self.send_btn.setEnabled(False)
-        self.loading_icon = QtGui.QMovie('animations\\loading_icon.gif')
-
-        self.update_check()
-        self.authorize_user()
-
-        # Try finding score file
         self.score_file = "Data\\frames.npy"
         if os.path.exists(self.score_file):
             self.score = sum(list(np.load(self.score_file)))
-            self.score_label.setText("Score: {}".format(str(self.score)))  # Colocar gif aqui
+            self.score_label.setText("Score: {}".format(str(self.score)))
 
-        # Icons
-        self.fish_animation = QtGui.QMovie('animations\\loading_icon.gif')
-        self.icons_label.setAlignment(Qt.AlignCenter)
+        # If auto_send config is not checked, let it be unchecked
+        if not self.auto_send:
+            self.auto_send_checkbox.setChecked(False)
 
+        # Configuring Signals:
+        self.dialog = ChangeKey()
+        self.dialog.new_key.connect(self.update_key)
+
+        # Defining button/checkbox actions
         self.data_start.clicked.connect(self.data_start_action)
         self.data_stop.clicked.connect(self.data_stop_action)
-        # self.send_btn.clicked.connect(self.go_to_website)
         self.send_btn.clicked.connect(self.send_data)
-        self.change_key_btn.clicked.connect(self.change_key)
+        self.change_key_btn.clicked.connect(self.dialog.exec_)
+        self.auto_send_checkbox.stateChanged.connect(self.auto_send_state_changed)
 
     def initUI(self):
         loadUi('designs\\GUI_design_with_res.ui', self)
         self.show()
 
-    def go_to_website(self):
-        webbrowser.open(BASE_URL + "/ranking")
 
-    def send_data(self):
-        with open("config.txt", 'r') as f:
-            output = json.loads(f.read())
-
-        response = send_files.send_data(BASE_URL, output['User'], output['Password'])
-
-        if response == 200:
-            self.send_status_label.setText("Success! Thank you for helping!")
-            self.send_status_label.setStyleSheet("color: #28a745;")
-
+    # Checking if auto_send checkbox is True/False
+    def auto_send_state_changed(self):
+        if self.auto_send_checkbox.isChecked():
+            result = True
         else:
-            pass
-            self.send_status_label.setText('Error! Verify your connection')
-            self.send_status_label.setStyleSheet("color: #dc3545;")
+            result = False
 
-        print(self.send_status_label.width(), self.send_status_label.height())
-        self.timer = QTimer()
-        self.timer.timeout.connect(self.send_status_label.clear)
-        self.timer.start(5000)
+        self.auto_send = result
+        with open("config.txt", "r") as f:
+            output = json.loads(f.read())
+            output['Auto-send'] = result
 
+        with open("config.txt", "w") as f:
+            json.dump(output, f)
+
+
+    # Webpage redirects (add one to ranking page)
     def go_to_update_page(self):
         webbrowser.open(BASE_URL + "/home")  # Change to download page
 
-    def update_check(self):
+
+    # Startup Processes:
+    def startup_update_check(self):
         self.check_thread = QThread()
         self.checker = CheckForUpdates()
         self.checker.moveToThread(self.check_thread)
@@ -305,7 +312,7 @@ class Widget(QWidget):
 
         self.checker.finished.connect(
             self.checker.deleteLater)  # connect the workers finished signal to clean up worker
-        self.checker.update_text.connect(self.update_box)
+        self.checker.update_text.connect(self.update_message_box)
 
         self.check_thread.finished.connect(
             self.check_thread.deleteLater)  # connect threads finished signal to clean up thread
@@ -314,7 +321,34 @@ class Widget(QWidget):
 
         self.check_thread.start()
 
-    def update_box(self, update_info):
+    def startup_authorize_user(self):
+
+        with open('config.txt', 'r') as f:
+            output = json.loads(f.read())
+            username = output['User']
+            password = output['Password']
+
+        # Thread:
+        self.login_thread = QThread()
+        self.login_worker = LoginWorker(username, password)
+        self.login_worker.moveToThread(self.login_thread)
+
+        self.login_worker.finished.connect(self.login_thread.quit)  # connect the workers finished signal to stop thread
+        self.login_worker.finished.connect(
+            self.login_worker.deleteLater)  # connect the workers finished signal to clean up worker
+        self.login_thread.finished.connect(
+            self.login_thread.deleteLater)  # connect threads finished signal to clean up thread
+
+        self.login_thread.started.connect(self.login_worker.do_work)
+        self.login_thread.finished.connect(self.login_worker.stop)
+
+        self.login_worker.result.connect(self.login_control)  # connect the workers finished signal to stop thread
+
+        self.login_thread.start()
+
+
+    # Notification of new version:
+    def update_message_box(self, update_info):
 
         current_version, new_version, changes, critical = update_info
 
@@ -363,16 +397,14 @@ class Widget(QWidget):
             updateBox.exec_()
             self.close()
 
-    def change_key(self):
-        self.dialog = ChangeKey()
-        self.dialog.exec_()
 
-        with open("config.txt", "r") as f:
-            output = json.loads(f.read())
-            key = output['Used key']
+    # Updating used key for fishing after ChangeKey dialog:
+    def update_key(self, key):
+        self.used_key_label.setText('Using "{}" key'.format(key))
+        self.used_key = key
 
-        self.used_key_label.setText('Using "{}" key to fish'.format(key))
 
+    # Data processes:
     def data_start_action(self):
         self.data_start.setEnabled(False)
         self.data_stop.setEnabled(True)
@@ -380,6 +412,7 @@ class Widget(QWidget):
         self.zoom_levelSpinBox.setEnabled(False)
         self.change_key_btn.setEnabled(False)
         self.send_btn.setEnabled(False)
+        self.auto_send_checkbox.setEnabled(False)
 
         # Icon
         self.icons_label.setMovie(self.fish_animation)
@@ -391,8 +424,9 @@ class Widget(QWidget):
 
         # Thread: __init__
         res = str(self.res_selection.currentText())
+
         self.thread = QThread()
-        self.worker = Worker(res)
+        self.worker = Worker(self.used_key, res, self.auto_send)
         self.stop_signal.connect(self.worker.stop)  # connect stop signal to worker stop method
         self.worker.moveToThread(self.thread)
 
@@ -404,7 +438,6 @@ class Widget(QWidget):
         self.thread.finished.connect(self.worker.stop)
 
         self.thread.start()
-        print('Data started')
 
     def data_stop_action(self):
         self.data_start.setEnabled(True)
@@ -413,49 +446,48 @@ class Widget(QWidget):
         self.zoom_levelSpinBox.setEnabled(True)
         self.change_key_btn.setEnabled(True)
         self.send_btn.setEnabled(True)
+        self.auto_send_checkbox.setEnabled(True)
 
         # Icon
         self.icons_label.clear()
 
         self.stop_signal.emit()  # emit the finished signal on stop
-        print('Data stopped')
 
         if os.path.exists(self.score_file):
             score = sum(list(np.load(self.score_file)))
             self.score_label.setText("Score: {}".format(str(score)))
 
-    def authorize_user(self):
-
-        with open('config.txt', 'r') as f:
+    def send_data(self):
+        with open("config.txt", 'r') as f:
             output = json.loads(f.read())
-            username = output['User']
-            password = output['Password']
 
-        # Thread:
-        self.login_thread = QThread()
-        self.login_worker = LoginWorker(username, password)
-        self.login_worker.moveToThread(self.login_thread)
+        response = send_files.send_data(BASE_URL, output['User'], output['Password'])
 
-        self.login_worker.finished.connect(self.login_thread.quit)  # connect the workers finished signal to stop thread
-        self.login_worker.finished.connect(
-            self.login_worker.deleteLater)  # connect the workers finished signal to clean up worker
-        self.login_thread.finished.connect(
-            self.login_thread.deleteLater)  # connect threads finished signal to clean up thread
+        if response == 200:
+            self.send_status_label.setText("Success! Thank you for helping!")
+            self.send_status_label.setStyleSheet("color: #28a745;")
 
-        self.login_thread.started.connect(self.login_worker.do_work)
-        self.login_thread.finished.connect(self.login_worker.stop)
+        else:
+            pass
+            self.send_status_label.setText('Error! Verify your connection')
+            self.send_status_label.setStyleSheet("color: #dc3545;")
 
-        self.login_worker.result.connect(self.login_control)  # connect the workers finished signal to stop thread
+        print(self.send_status_label.width(), self.send_status_label.height())
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.send_status_label.clear)
+        self.timer.start(5000)
 
-        self.login_thread.start()
 
+    # Account functions:
     def login_control(self, results):
         print(results)
         if results['Logged']:
             self.username = results['Username']
-            self.username_label.setText(self.username)
-            self.send_btn.setEnabled(True)
-            self.send_btn.setText("Send data")
+
+            self.accnt_manager = AccountManager()
+            self.accnt_manager.user_logged.connect(self.user_has_logged)
+
+            self.accnt_manager.user_logged.emit(results['Username'])
 
         else:
             self.accnt_manager = AccountManager()
@@ -464,9 +496,17 @@ class Widget(QWidget):
             self.accnt_manager.exec_()
 
     def user_has_logged(self, username):
+        self.username = username
         self.username_label.setText(username)
-        self.send_btn.setEnabled(True)
-        self.send_btn.setText("Send data")
+
+        try:
+            self.thread.isRunning()
+            self.send_btn.setText("Send data")
+
+        except:
+            self.send_btn.setEnabled(True)
+            self.auto_send_checkbox.setEnabled(True)
+            self.send_btn.setText("Send data")
 
 
 class LoginWorker(QObject):

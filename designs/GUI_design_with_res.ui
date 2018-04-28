@@ -76,7 +76,7 @@
           </sizepolicy>
          </property>
          <property name="text">
-          <string>username</string>
+          <string>Connecting</string>
          </property>
         </widget>
        </item>
@@ -116,6 +116,9 @@
        <property name="text">
         <string/>
        </property>
+       <property name="alignment">
+        <set>Qt::AlignCenter</set>
+       </property>
       </widget>
      </item>
      <item>
@@ -129,6 +132,9 @@
        </item>
        <item>
         <widget class="QPushButton" name="data_stop">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
          <property name="text">
           <string>Stop collecting</string>
          </property>
@@ -154,13 +160,16 @@
      </item>
      <item>
       <widget class="QPushButton" name="send_btn">
+       <property name="enabled">
+        <bool>false</bool>
+       </property>
        <property name="text">
-        <string>Send data</string>
+        <string>Can't send data while offline</string>
        </property>
       </widget>
      </item>
      <item>
-      <widget class="QCheckBox" name="auto_send">
+      <widget class="QCheckBox" name="auto_send_checkbox">
        <property name="enabled">
         <bool>false</bool>
        </property>
@@ -171,10 +180,10 @@
         <string>Automaticly send data when finished</string>
        </property>
        <property name="checkable">
-        <bool>false</bool>
+        <bool>true</bool>
        </property>
        <property name="checked">
-        <bool>false</bool>
+        <bool>true</bool>
        </property>
       </widget>
      </item>
