@@ -174,10 +174,11 @@ class SaveData(QObject):
         QObject.__init__(self, parent=parent)
         self.run = True
 
-    def main(self, res=(1280, 720), key="C", autosend=False):
+    def main(self, res=(1280, 720), key="C", autosend=False, zoom=0):
         print("Running on: {}x{}".format(res[0], res[1]))
         print("Using {} key".format(key))
         print("Autosend: {}".format(autosend))
+        print("Zoom: {}".format(zoom))
         ###################################################################################################
 
         file_name = 'Data\\training_data.npy'
