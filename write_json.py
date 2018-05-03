@@ -1,9 +1,8 @@
 import json
 
-key = "C"
 data = {"Version": 1.0,
-        "Date": "2018-04-19",
-        "Used key": key,
+        "Date": "2018-04-25",
+        "Used key": "C",
         "Resolution": "1280x720",
         "Zoom": 2,
         "Auto-send": True,

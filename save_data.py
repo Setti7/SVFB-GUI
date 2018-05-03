@@ -30,7 +30,7 @@ def fishing_region(img_rgb, region_template_gray, w, h):
 
     img_gray = cv2.cvtColor(img_rgb, cv2.COLOR_BGR2GRAY)
 
-    res = cv2.matchTemplate(img_gray, region_template_gray, cv2.TM_CCOEFF_NORMED)
+    res = cv2.matchTemplate(img_gray, region_template_gray, cv2.TM_CCOEFF_NORMED) #cv.TM_CCORR_NORMED tava usando cv2.TM_CCOEFF_NORMED
 
     threshold = 0.65
 
@@ -88,8 +88,8 @@ def fish(green_bar_win):
             # print('Fishy')
             break
 
-    if not fish_detected:
-        print("No fish was detected, not saving this frame.")
+    # if not fish_detected:
+    #     print("No fish was detected, not saving this frame.")
 
     return fish_detected, fish_center_height, img_fish
 
@@ -166,20 +166,42 @@ def process_img(img_rgb, green_bar_win):
 
     return img_rgb, rect_center_heigth, lowest_point
 
+
 class SaveData(QObject):
     score = pyqtSignal(int)
     data_response_code = pyqtSignal(int)
 
-    def __init__(self, parent=None):
+    def __init__(self, key, res, zoom, autosend, parent=None):
         QObject.__init__(self, parent=parent)
+        self.res = res
+        self.zoom = zoom
+        self.autosend = autosend
+        self.key = key
+
         self.run = True
 
-    def main(self, res=(1280, 720), key="C", autosend=False, zoom=0):
-        print("Running on: {}x{}".format(res[0], res[1]))
-        print("Using {} key".format(key))
-        print("Autosend: {}".format(autosend))
-        print("Zoom: {}".format(zoom))
+    def main(self):
+        print("Running on: {}x{}".format(self.res[0], self.res[1]))
+        print("Using {} key".format(self.key))
+        print("Autosend: {}".format(self.autosend))
+        print("Zoom: {}".format(self.zoom))
         ###################################################################################################
+
+        # L=152,98+I*8,36 -> para achar largura em função do número da imagem
+        # C=593,81+I*31,62 -> para achar comprimento em função do número da imagem
+        # zoom_dict = {
+        #     '-5': (113,447), ok
+        #     '-4': (121,474), ok
+        #     '-3': (121,479), not ok
+        #     '-2': (134,509), not ok
+        #     '-1': (148,571), ok
+        #     '0': (156,600), ok
+        #     '1': (161,629),
+        #     '2': (169,659),
+        #     '3': (177,687),
+        #     '4': (187,721),
+        #     '5': (195, 752) # Linear aproximation (I couldn't measure it)
+        # }
 
         file_name = 'Data\\training_data.npy'
 
@@ -202,16 +224,25 @@ class SaveData(QObject):
             frames = []
 
         ###################################################################################################
-
-        region_template = cv2.imread('Images\\fishing region 3.png')
+        fishing_region_file = 'Images\\fr {}.png'.format(self.zoom)
+        if os.path.exists(fishing_region_file):
+            region_template = cv2.imread('Images\\fr {}.png'.format(self.zoom))
+            print(fishing_region_file)
+        else:
+            quit()
         region_template_gray = cv2.cvtColor(region_template, cv2.COLOR_BGR2GRAY)
-        wr, hr = region_template_gray.shape[::-1]
+        # region_template_gray = cv2.resize(region_template_gray, zoom_dict[str(self.zoom)])
+        wr, hr = region_template_gray.shape[::-1] # 121, 474
+        print("w: 121 h: 474".format(wr, hr), end='\t')
+        # resized = zoom_dict[str(self.zoom)]
+        # print(resized)
 
         was_fishing = False
 
         while self.run:
 
-            res_x, res_y = res
+
+            res_x, res_y = self.res
             screen = np.array(ImageGrab.grab(bbox=(0, 40, res_x, res_y+40 )))
 
             fishing, green_bar_window, floor_height = fishing_region(screen, region_template_gray, wr, hr)
@@ -225,12 +256,12 @@ class SaveData(QObject):
                 d_rect_fish = fish_height - green_bar_height  # if result is + : fish is below the green bar, if result is - : fish is above the green bar
                 d_rect_floor = floor_height - lowest_point  # always +
 
-                key_pressed = key_check(key)
+                key_pressed = key_check(self.key)
 
                 data = [d_rect_fish, d_rect_floor, key_pressed]  # example key pressed: [231, 456, 1]
 
                 training_data.append(data)
-                #print(data)
+                print(data)
 
                 was_fishing = True
 
@@ -249,7 +280,7 @@ class SaveData(QObject):
                     was_fishing = False
                     self.score.emit(sum(frames))
 
-                    if autosend:
+                    if self.autosend:
                         with open("config.txt", 'r') as f:
                             output = json.loads(f.read())
                         BASE_URL = 'http://192.168.1.102'
@@ -269,15 +300,26 @@ class SaveData(QObject):
                     was_fishing = False
                     self.score.emit(sum(frames))
 
-                    if autosend:
+                    if self.autosend:
                         with open("config.txt", 'r') as f:
                             output = json.loads(f.read())
                         BASE_URL = 'http://192.168.1.102'
                         response_code = send_files.send_data(BASE_URL, output['User'], output['Password'])
                         self.data_response_code.emit(response_code)
 
+            # cv2.imshow('Resized', region_template_gray2)
+            # cv2.imshow('Normal', region_template_gray)
+            #
+            # if cv2.waitKey(25) == 27:
+            #     cv2.destroyAllWindows()
+            #     self.run = False
+
     def stop(self):
         self.run = False
 
+
 if __name__ == "__main__":
-    main(res=[1280, 720])
+    test = SaveData()
+    test.main(zoom=-4, res=(1280, 768))
+    print("Changed")
+    test.main(zoom=-3, res=(1280, 768))

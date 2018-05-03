@@ -9,8 +9,8 @@ from PyQt5.uic import loadUi
 import send_files
 from save_data import SaveData
 
-BASE_URL = 'http://192.168.1.102'
-
+BASE_URL = 'http://127.0.0.1'
+# TODO: programa crash quando faz login dps de logout. Aconteceu na viagem com servidor 127.0.0.1. Acho que foi consertado. Erro era em CheckForOnlineScore (usando method QThread.sleep(15000), porém não era um QThread e por isso dava erro
 
 class Worker(QObject):
     finished = pyqtSignal()  # give worker class a finished signal
@@ -27,7 +27,9 @@ class Worker(QObject):
         self.username = username
         self.password = password
 
-        self.work = SaveData()
+        resolution = [int(x_or_y) for x_or_y in self.res.split('x')]
+
+        self.work = SaveData(res=resolution, key=self.key, autosend=self.autosend, zoom=self.zoom)
         self.work.data_response_code.connect(self.response_code_control)
         self.work.score.connect(self.score_control)
 
@@ -38,9 +40,7 @@ class Worker(QObject):
         self.updated_score.emit(score)
 
     def do_work(self):
-        res = [int(x_or_y) for x_or_y in self.res.split('x')]
-
-        self.work.main(res=res, key=self.key, autosend=self.autosend, zoom=self.zoom)
+        self.work.main()
 
         self.finished.emit()  # emit the finished signal when the loop is done
 
@@ -97,23 +97,33 @@ class CheckForOnlineScore(QObject):
         self.client = session
         self.continue_run = True
 
+    def timer_for_checker(self):
+
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.check_online_score)
+        self.timer.start(15000)
+
     @pyqtSlot()
     def check_online_score(self):
         score_url = BASE_URL + '/score'
 
         try:
-            while self.continue_run:
+
+            if self.continue_run:
                 response = self.client.get(score_url)
                 output = json.loads(response.text)['score']
                 self.online_score.emit(output)
                 print("ONLINE SCORE: {}".format(output))
-                QThread.sleep(2)
 
-            self.finished.emit()
+                self.timer_for_checker()
+            else:
+                self.finished.emit()
+                print("finish emitted")
 
         except Exception as e:
             print(e)
             print("#004")
+
 
     def stop(self):
         self.continue_run = False
@@ -227,6 +237,7 @@ class AccountManager(QDialog):
 
         except Exception as e:
             print(e)
+            print("#010")
 
     def login(self):
         login_url = BASE_URL + "/accounts/login/?next=/home/"
@@ -276,7 +287,7 @@ class AccountManager(QDialog):
 
 
 class Widget(QWidget):
-    stop_signal = pyqtSignal()  # TODO: delete this?
+    stop_signal = pyqtSignal()
 
     with open("config.txt", "r") as f:
         output = json.loads(f.read())
@@ -353,11 +364,15 @@ class Widget(QWidget):
 
     def initUI(self):
         loadUi('designs\\GUI_design_with_res.ui', self)
+
+        # Menu
         self.menu = QMenuBar(self)
         self.menu_options = self.menu.addMenu('Options')
 
-        delete_last_data = self.menu_options.addAction("Delete last data")
-        delete_last_data.triggered.connect(lambda: print('8===D your face here'))
+        self.delete_last_data_btn = self.menu_options.addAction("Delete last data")
+        self.delete_last_data_btn.triggered.connect(self.delete_last_data)
+
+        self.menu_options.addSeparator()
 
         self.logout_btn = self.menu_options.addAction("Logout")
         self.logout_btn.triggered.connect(self.logout)
@@ -368,7 +383,11 @@ class Widget(QWidget):
         visit_ranking = self.menu.addAction('Ranking')
         visit_ranking.triggered.connect(lambda: webbrowser.open(BASE_URL + "/ranking"))
 
+        website = self.menu.addAction('Github [ICON]')
+        website.triggered.connect(lambda: webbrowser.open("https://www.github.com/Setti7/Stardew-Valley-Fishing-Bot"))
+
         self.menu.setFixedSize(self.width(), 25)
+
         self.show()
 
 
@@ -497,7 +516,7 @@ class Widget(QWidget):
             self.v_label.setText("v{} (v{} available)".format(self.version, new_version))
 
             ok = updateBox.addButton(QMessageBox.Ok)
-            ok.clicked.connect(lambda: webbrowser.open(BASE_URL + "/home")) # TODO: check if this is working
+            ok.clicked.connect(lambda: webbrowser.open(BASE_URL + "/home"))
             updateBox.exec_()
 
         else:
@@ -519,7 +538,7 @@ class Widget(QWidget):
             self.v_label.setText("v{} (v{} REQUIRED)".format(self.version, new_version))
 
             ok = updateBox.addButton(QMessageBox.Ok)
-            ok.clicked.connect(lambda: webbrowser.open(BASE_URL + "/home")) # TODO: check if this is working
+            ok.clicked.connect(lambda: webbrowser.open(BASE_URL + "/home"))
             updateBox.exec_()
             self.close()
 
@@ -533,6 +552,9 @@ class Widget(QWidget):
         self.change_key_btn.setEnabled(False)
         self.send_btn.setEnabled(False)
         self.auto_send_checkbox.setEnabled(False)
+        self.logout_btn.setEnabled(False)
+        self.login_btn.setEnabled(False)
+        self.delete_last_data_btn.setEnabled(False)
 
         # Icon
         self.icons_label.setMovie(self.dog_getting_up)
@@ -544,12 +566,12 @@ class Widget(QWidget):
         try: # This is necessary to make the dog don't go idle if the user clicks start>stop too fast.
             self.dog_timer2.deleteLater()
         except:
-            pass
+            pass # fight me
 
         # Thread: __init__
         self.thread = QThread()
         self.worker = Worker(self.used_key, self.res, self.zoom, self.auto_send)
-        self.stop_signal.connect(self.worker.stop)  # TODO: I think I can delete "stop_signal" connect stop signal to worker stop method
+        self.stop_signal.connect(self.worker.stop)  # connect stop signal to worker stop method
         self.worker.moveToThread(self.thread)
 
         self.worker.finished.connect(self.thread.quit)  # connect the workers finished signal to stop thread
@@ -570,6 +592,9 @@ class Widget(QWidget):
         self.res_selection.setEnabled(True)
         self.zoom_levelSpinBox.setEnabled(True)
         self.change_key_btn.setEnabled(True)
+        self.logout_btn.setEnabled(True)
+        self.login_btn.setEnabled(True)
+        self.delete_last_data_btn.setEnabled(True)
 
         if self.send_btn.text() != "Can't send data while offline":
             self.send_btn.setEnabled(True)
@@ -622,6 +647,54 @@ class Widget(QWidget):
         self.timer.timeout.connect(self.send_status_label.clear)
         self.timer.start(5000)
 
+    def delete_last_data(self):
+
+        choice = QMessageBox.question(self, "Warning!", "Are you sure you want to delete the data from your last fishing session?", QMessageBox.Yes | QMessageBox.No)
+
+        if choice == QMessageBox.Yes:
+
+            try:
+
+                file_name = 'Data\\training_data.npy'
+                frames_file = 'Data\\frames.npy'
+
+                training_data = list(np.load(file_name))
+                frames = list(np.load(frames_file))
+
+                before_score = sum(frames)
+
+                print(len(frames))
+                print(frames)
+                print(len(training_data))
+
+                del training_data[-frames[-1]:] # TODO: acho que poderia ser 'del training_data[frames[0]:]'
+                del frames[-1]
+
+                np.save(file_name, training_data)
+                np.save(frames_file, frames)
+
+                after_score = sum(frames)
+
+                string = 'Last data was removed successfully!\n\nScore before deletion:\t' + str(before_score) + '\nYour score now:\t\t' + str(after_score)
+                print(string)
+                QMessageBox.information(self, "Success", string)
+
+                self.update_score(after_score)
+                if self.auto_send and self.username: # TODO: Devo deixar isso aqui ou fazer upload automático da Data, mesmo sem autorizar?
+                    self.send_data()
+
+                elif not self.auto_send and self.username:
+                    self.send_status_label.setStyleSheet('')
+                    self.send_status_label.setText("Don't forget to upload your data!")
+
+                    self.timer = QTimer()
+                    self.timer.timeout.connect(self.send_status_label.clear)
+                    self.timer.start(5000)
+
+            except Exception as e:
+                print(e)
+                QMessageBox.information(self, "Oops!", "Could not delete the Data")
+
 
     # Account functions:
     def login_control(self, results):
@@ -656,6 +729,7 @@ class Widget(QWidget):
         print("USER HAS LOGGED #008")
         self.username = user_info['Username']
         self.password = user_info['Password']
+        client = user_info['Session']
 
         self.username_label.setText(self.username)
 
@@ -668,48 +742,26 @@ class Widget(QWidget):
 
         self.send_btn.setText("Send data")
 
-        if "Session" in user_info.keys(): #TODO: Esse session é desnecessário
-            max_retries = 2
-            login_url = BASE_URL + "/accounts/login/?next=/home/"
+        try:
 
-            try:
-                client = requests.Session()
-                adapter = requests.adapters.HTTPAdapter(max_retries=max_retries)
-                client.mount('http://', adapter)  # client.mount('https://', adapter)
+            self.score_thread = QThread()
+            self.score_worker = CheckForOnlineScore(client)
+            self.score_worker.moveToThread(self.score_thread)
 
-                client.get(login_url)
-                csrftoken = client.cookies['csrftoken']
-                login_data = {'username': self.username, 'password': self.password,
-                              'csrfmiddlewaretoken': csrftoken}
+            self.score_worker.finished.connect(self.score_thread.quit)  # connect the workers finished signal to stop thread
+            self.score_worker.finished.connect(self.score_worker.deleteLater)  # connect the workers finished signal to clean up worker
+            self.score_thread.finished.connect(self.score_thread.deleteLater)  # connect threads finished signal to clean up thread
 
-                response = client.post(login_url, data=login_data)
-                success_text = "Logout from {}".format(self.username)
+            self.score_thread.started.connect(self.score_worker.check_online_score)
+            self.score_thread.finished.connect(self.score_worker.stop)
+            self.score_worker.online_score.connect(self.call_update_score)
 
-                if success_text in str(response.content):
-                    print("SESSION #009")
+            self.score_thread.start()
+            print('Thread starting')
 
-
-                    self.score_thread = QThread()
-                    self.score_worker = CheckForOnlineScore(client)
-                    self.score_worker.moveToThread(self.score_thread)
-
-                    self.score_worker.finished.connect(self.score_thread.quit)  # connect the workers finished signal to stop thread
-                    self.score_worker.finished.connect(self.score_worker.deleteLater)  # connect the workers finished signal to clean up worker
-                    self.score_thread.finished.connect(self.score_thread.deleteLater)  # connect threads finished signal to clean up thread
-
-                    self.score_thread.started.connect(self.score_worker.check_online_score)
-                    self.score_thread.finished.connect(self.score_worker.stop)
-                    self.score_worker.online_score.connect(self.call_update_score)
-                    print("SESSION #009")
-
-                    self.score_thread.start()
-                    print("SESSION #010")
-
-
-
-            except Exception as e:
-                print(e)
-                print("#005")
+        except Exception as e:
+            print(e)
+            print("#005")
 
     def logout(self):
         self.username = ''
@@ -735,7 +787,6 @@ class Widget(QWidget):
             json.dump(output, f)
 
         self.login_control({"Logged": False})
-
 
 
 class LoginWorker(QObject):
@@ -780,7 +831,7 @@ class LoginWorker(QObject):
 
             except Exception as e:
                 print(e)
-                QThread.sleep(30)
+                QThread.sleep(30) #TODO: ver se isso dá um erro (QObject não é Qthread, então não é pra poder ter o method de sleep()
 
     def stop(self):
         self.continue_run = False
