@@ -1,11 +1,10 @@
 import numpy as np
 from PIL import ImageGrab
 import cv2
-import time
 from PyQt5.QtCore import QObject, pyqtSignal
-from getkeys import key_check
+from GUI_functions.getkeys import key_check
 import os, json
-import send_files
+from GUI_functions import send_files
 
 # upper and lower bound for the color detection (the way I came up with to find the contour of the green rectangle)
 upperBound_s1 = np.array([200, 150, 255])
@@ -224,9 +223,9 @@ class SaveData(QObject):
             frames = []
 
         ###################################################################################################
-        fishing_region_file = 'Images\\fr {}.png'.format(self.zoom)
+        fishing_region_file = 'media\\Images\\fr {}.png'.format(self.zoom)
         if os.path.exists(fishing_region_file):
-            region_template = cv2.imread('Images\\fr {}.png'.format(self.zoom))
+            region_template = cv2.imread('media\\Images\\fr {}.png'.format(self.zoom))
             print(fishing_region_file)
         else:
             quit()

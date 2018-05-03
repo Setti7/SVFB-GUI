@@ -3,11 +3,11 @@ from urllib.request import urlopen
 from urllib.error import URLError
 import sys, numpy as np, os, webbrowser
 from PyQt5.QtWidgets import QWidget, QApplication, QMessageBox, QDialog, QMenuBar
-from PyQt5.QtCore import QThread, QObject, pyqtSignal, pyqtSlot, Qt, QTimer
+from PyQt5.QtCore import QThread, QObject, pyqtSignal, pyqtSlot, QTimer
 from PyQt5 import QtGui
 from PyQt5.uic import loadUi
-import send_files
-from save_data import SaveData
+from GUI_functions import send_files
+from GUI_functions.save_data import SaveData
 
 BASE_URL = 'http://127.0.0.1'
 # TODO: programa crash quando faz login dps de logout. Aconteceu na viagem com servidor 127.0.0.1. Acho que foi consertado. Erro era em CheckForOnlineScore (usando method QThread.sleep(15000), porém não era um QThread e por isso dava erro
@@ -135,7 +135,7 @@ class ChangeKey(QDialog):
     def __init__(self):
         super().__init__()
         self.initUI()
-        self.setWindowIcon(QtGui.QIcon('logo\\logo.png'))
+        self.setWindowIcon(QtGui.QIcon('media\\logo\\logo.png'))
 
         self.save_btn.clicked.connect(self.save)
         self.close_btn.clicked.connect(self.close)
@@ -172,7 +172,7 @@ class AccountManager(QDialog):
     def initUI(self):
         loadUi('designs\\login_dialog.ui', self)
 
-        self.setWindowIcon(QtGui.QIcon('logo\\logo.png'))
+        self.setWindowIcon(QtGui.QIcon('media\\logo\\logo.png'))
         self.login_btn.clicked.connect(self.login)
         self.create_account_btn.clicked.connect(self.create_account)
         self.login_error.hide()
@@ -325,11 +325,11 @@ class Widget(QWidget):
         self.startup_authorize_user()
 
         # Icons:
-        self.setWindowIcon(QtGui.QIcon('logo\\logo.png'))
-        self.dog_getting_up = QtGui.QMovie('animations\\Dog Getting Up4.gif')
-        self.dog_running = QtGui.QMovie('animations\\Dog Running4.gif')
-        self.dog_idle = QtGui.QMovie('animations\\Dog Idle2.gif')
-        self.dog_sitting_down = QtGui.QMovie("animations\\Dog Sitting Down4.gif")
+        self.setWindowIcon(QtGui.QIcon('media\\logo\\logo.png'))
+        self.dog_getting_up = QtGui.QMovie('media\\animations\\Dog Getting Up4.gif')
+        self.dog_running = QtGui.QMovie('media\\animations\\Dog Running4.gif')
+        self.dog_idle = QtGui.QMovie('media\\animations\\Dog Idle2.gif')
+        self.dog_sitting_down = QtGui.QMovie("media\\animations\\Dog Sitting Down4.gif")
         self.icons_label.setMovie(self.dog_idle)
         self.dog_idle.start()
 
@@ -505,7 +505,7 @@ class Widget(QWidget):
                 """Please click "Ok" to be redirected to the download page. You can also see the changelog details below!"""
             )
             updateBox.setWindowTitle("Update required")
-            updateBox.setWindowIcon(QtGui.QIcon('logo\\logo.png'))
+            updateBox.setWindowIcon(QtGui.QIcon('media\\logo\\logo.png'))
 
             text = """Version available: {1}\n\n{2}""".format(current_version, new_version,
                                                               changes)
@@ -527,7 +527,7 @@ class Widget(QWidget):
                 """Please click <i>Ok</i> to download the newer one. You can also see the changelog details below! <small>(The critical change is highlighted)</small>"""
             )
             updateBox.setWindowTitle("Unsupported Software")
-            updateBox.setWindowIcon(QtGui.QIcon('logo\\logo.png'))
+            updateBox.setWindowIcon(QtGui.QIcon('media\\logo\\logo.png'))
 
             text = """Version available: {1}\n\n{2}""".format(current_version, new_version,
                                                               changes)
