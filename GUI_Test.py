@@ -7,7 +7,7 @@ from PyQt5.QtCore import QThread, QObject, pyqtSignal, pyqtSlot, QTimer
 from PyQt5 import QtGui
 from PyQt5.uic import loadUi
 from GUI_functions import send_files
-from GUI_functions.save_data import SaveData
+from GUI_functions.save_data2 import SaveData
 
 BASE_URL = 'http://127.0.0.1'
 # TODO: programa crash quando faz login dps de logout. Aconteceu na viagem com servidor 127.0.0.1. Acho que foi consertado. Erro era em CheckForOnlineScore (usando method QThread.sleep(15000), porém não era um QThread e por isso dava erro
@@ -656,10 +656,26 @@ class Widget(QWidget):
             try:
 
                 file_name = 'Data\\training_data.npy'
-                frames_file = 'Data\\frames.npy'
+                frame_file = 'Data\\frames.npy'
+
+                if os.path.isfile(file_name):
+                    print("Training file exists, loading previos data!")
+                    training_data = list(np.load(file_name))
+
+                else:
+                    print("Training file does not exist, starting fresh!")
+                    training_data = []
+
+                if os.path.isfile(frame_file):
+                    print("Frames file exists, loading previos data!")
+                    frames = list(np.load(frame_file))
+
+                else:
+                    print("Frames file does not exist, starting fresh!")
+                    frames = []
 
                 training_data = list(np.load(file_name))
-                frames = list(np.load(frames_file))
+                frames = list(np.load(frame_file))
 
                 before_score = sum(frames)
 
@@ -671,7 +687,7 @@ class Widget(QWidget):
                 del frames[-1]
 
                 np.save(file_name, training_data)
-                np.save(frames_file, frames)
+                np.save(frame_file, frames)
 
                 after_score = sum(frames)
 
@@ -830,7 +846,7 @@ class LoginWorker(QObject):
                     self.continue_run = False
 
             except Exception as e:
-                print(e)
+                print("Offline")
                 QThread.sleep(30) #TODO: ver se isso dá um erro (QObject não é Qthread, então não é pra poder ter o method de sleep()
 
     def stop(self):

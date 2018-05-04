@@ -1,6 +1,6 @@
 import numpy as np
 from PIL import ImageGrab
-import cv2
+import cv2, datetime
 from PyQt5.QtCore import QObject, pyqtSignal
 from GUI_functions.getkeys import key_check
 import os, json
@@ -237,9 +237,9 @@ class SaveData(QObject):
         # print(resized)
 
         was_fishing = False
+        counter = 1
 
         while self.run:
-
 
             res_x, res_y = self.res
             screen = np.array(ImageGrab.grab(bbox=(0, 40, res_x, res_y+40 )))
@@ -247,6 +247,10 @@ class SaveData(QObject):
             fishing, green_bar_window, floor_height = fishing_region(screen, region_template_gray, wr, hr)
 
             if fishing:
+                if counter == 1:
+                    initial_time = datetime.datetime.now()
+                    counter = 2
+
                 contour, green_bar_height, lowest_point = process_img(screen,
                                                                       green_bar_window)  # process every frame (would be nice if it could process every 5 or so frames, so the process becomes faster).
 
@@ -305,6 +309,12 @@ class SaveData(QObject):
                         BASE_URL = 'http://192.168.1.102'
                         response_code = send_files.send_data(BASE_URL, output['User'], output['Password'])
                         self.data_response_code.emit(response_code)
+
+                final_time = datetime.datetime.now()
+                time_delta = final_time - initial_time
+                print(time_delta.total_seconds())
+                frame_yield = 100 * frames[-1] / (time_delta.total_seconds() * 30)
+                print("Rendimento: {}%".format(frame_yield))
 
             # cv2.imshow('Resized', region_template_gray2)
             # cv2.imshow('Normal', region_template_gray)
