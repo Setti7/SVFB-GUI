@@ -117,7 +117,7 @@ class SaveData(QObject):
 
                 key_pressed = key_check(self.key) # return 1 or 0
 
-                data = [window, key_pressed] # CANNOT BE [KEY_PRESSED, WINDOW}
+                data = [window, key_pressed] # or data = np.array([key_pressed, window], dtype=object)
                 print(data)
 
                 # training_data.append(data)
@@ -180,7 +180,7 @@ class SaveData(QObject):
                 print("Yield: {}%".format(frame_yield))
 
                 with open("log.txt", 'a') as f:
-                    f.write("Method: {}\nYield: {}%\ndTime: {}s\nFrames: {}\n\n".format(method, frame_yield, time_delta.total_seconds(), frames[-1]))
+                    f.write("Method: {}\nYield: {}%\ndTime: {}s\nFrames: {}\n\n".format(method, round(frame_yield, 2), time_delta.total_seconds(), frames[-1]))
 
 
             # cv2.imshow('Resized', region_template)
