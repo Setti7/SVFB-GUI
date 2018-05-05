@@ -7,7 +7,7 @@ from PyQt5.QtCore import QThread, QObject, pyqtSignal, pyqtSlot, QTimer
 from PyQt5 import QtGui
 from PyQt5.uic import loadUi
 from GUI_functions import send_files
-from GUI_functions.save_data2 import SaveData
+from GUI_functions.save_data import SaveData
 
 BASE_URL = 'http://127.0.0.1'
 # TODO: programa crash quando faz login dps de logout. Aconteceu na viagem com servidor 127.0.0.1. Acho que foi consertado. Erro era em CheckForOnlineScore (usando method QThread.sleep(15000), porém não era um QThread e por isso dava erro
