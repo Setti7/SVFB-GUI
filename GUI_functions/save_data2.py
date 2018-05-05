@@ -4,7 +4,7 @@ import cv2, datetime
 from PyQt5.QtCore import QObject, pyqtSignal
 from GUI_functions.getkeys import key_check
 import os, json
-from GUI_functions import send_files
+from GUI_functions import send_files, grabscreen
 
 
 x = 105  # If I need to translate the areas of interest easily and equally
@@ -63,15 +63,17 @@ class SaveData(QObject):
 
         if os.path.isfile(file_name):
             print("Training file exists, loading previos data!")
-            training_data = list(np.load(file_name))
+            # training_data = list(np.load(file_name))
+            training_data = np.load(file_name)
 
         else:
             print("Training file does not exist, starting fresh!")
-            training_data = []
+            training_data = np.empty(shape=[0, 2])
 
         if os.path.isfile(frame_file):
             print("Frames file exists, loading previos data!")
-            frames = list(np.load(frame_file))
+            # frames = list(np.load(frame_file))
+            frames =  list(np.load(frame_file))
 
         else:
             print("Frames file does not exist, starting fresh!")
@@ -80,8 +82,8 @@ class SaveData(QObject):
         # Loading template:
         fishing_region_file = 'media\\Images\\fr {}.png'.format(self.zoom)
         region_template = cv2.imread(fishing_region_file)
-        region_template_gray = cv2.cvtColor(region_template, cv2.COLOR_BGR2GRAY)
-        wr, hr = region_template_gray.shape[::-1] # 121, 474
+        region_template = cv2.cvtColor(region_template, cv2.COLOR_BGR2GRAY)
+        wr, hr = region_template.shape[::-1] # 121, 474
 
         print(fishing_region_file)
 
@@ -92,19 +94,18 @@ class SaveData(QObject):
         while self.run:
 
             res_x, res_y = self.res
-            screen = np.array(ImageGrab.grab(bbox=(0, 40, res_x, res_y+40 )))
-            screen = cv2.cvtColor(screen, cv2.COLOR_BGR2GRAY)
+            screen = grabscreen.grab_screen(region=(0, 40, res_x, res_y+40 )) # Return gray screen
 
             # Finds the thin area the fish stays at
             if coords:
                 # If there was found coords, cut the screen size to look again for the template, so it uses less resources
-                region = fishing_region(screen[coords[0]:coords[1], coords[2]:coords[3]], region_template_gray, wr, hr) #[y1, y2, x1 + 55, x2 - 35]
+                region = fishing_region(screen[coords[0]:coords[1], coords[2]:coords[3]], region_template, wr, hr) #[y1, y2, x1 + 55, x2 - 35]
                 counter.append(1)
                 if len(counter) > 29:
                     print("Finding template in limited space")
                     counter.clear()
             else:
-                region = fishing_region(screen, region_template_gray, wr, hr)
+                region = fishing_region(screen, region_template, wr, hr)
                 counter.append(1)
                 if len(counter) > 49:
                     print("Finding template on full resolution")
@@ -114,12 +115,14 @@ class SaveData(QObject):
 
                 window = region["Region"]
 
-                key_pressed = key_check(self.key)
+                key_pressed = key_check(self.key) # return 1 or 0
 
-                data = [key_pressed, window]  # example key pressed: [231, 456, 1]
+                data = [window, key_pressed] # CANNOT BE [KEY_PRESSED, WINDOW}
+                print(data)
 
-                training_data.append(data)
-                #print(data)
+                # training_data.append(data)
+                training_data = np.vstack((training_data, data))
+                method = 'np.vstack'
 
                 was_fishing = True
 
@@ -131,10 +134,12 @@ class SaveData(QObject):
 
             # If area not detected this frame, but was on the last one
             if not region["Detected"] and was_fishing:
+                final_time = datetime.datetime.now()
 
                 if len(frames) == 0:
                     # print('list of frames is new')
                     frames.append(len(training_data))
+
                     print("Frames analysed:\t", len(training_data))
 
                     np.save(frame_file, frames)
@@ -169,13 +174,17 @@ class SaveData(QObject):
                 coords = None
 
                 # Measurements:
-                final_time = datetime.datetime.now()
                 time_delta = final_time - initial_time
                 frame_yield = 100*frames[-1]/(time_delta.total_seconds()*30)
+                print("ΔTime: {}".format(time_delta.total_seconds()))
                 print("Yield: {}%".format(frame_yield))
 
-            # cv2.imshow('Resized', region_template_gray2)
-            # cv2.imshow('Normal', region_template_gray)
+                with open("log.txt", 'a') as f:
+                    f.write("Method: {}\nYield: {}%\ndTime: {}s\nFrames: {}\n\n".format(method, frame_yield, time_delta.total_seconds(), frames[-1]))
+
+
+            # cv2.imshow('Resized', region_template)
+            # cv2.imshow('Normal', region_template)
             #
             # if cv2.waitKey(25) == 27:
             #     cv2.destroyAllWindows()

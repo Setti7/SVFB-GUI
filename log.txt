@@ -1,0 +1,115 @@
+Method: np.vstack
+Yield: 69.10134423773172%
+dTime: 6.463936s
+Frames: 134
+
+Method: np.vstack
+Yield: 47.7959894024568%
+dTime: 7.392531s
+Frames: 106
+
+Method: np.vstack
+Yield: 38.677567552305604%
+dTime: 7.325521s
+Frames: 85
+
+Method: np.vstack
+Yield: 32.826945779596876%
+dTime: 7.311067s
+Frames: 72
+
+Method: np.vstack
+Yield: 30.22641434016888%
+dTime: 7.388681s
+Frames: 67
+
+Method: np.vstack
+Yield: 57.95490378345128%
+dTime: 7.30453s
+Frames: 127
+
+Method: np.vstack
+Yield: 99.9847247311712%
+dTime: 10.568281s
+Frames: 317
+
+Method: np.vstack
+Yield: 99.9778804303168%
+dTime: 7.768385s
+Frames: 233
+
+Method: np.vstack
+Yield: 99.8894938727582%
+dTime: 14.816373s
+Frames: 444
+
+Method: np.vstack
+Yield: 99.99585731448269%
+dTime: 9.100377s
+Frames: 273
+
+Method: np.vstack
+Yield: 100.01036842186905%
+dTime: 6.532656s
+Frames: 196
+
+Method: np.vstack
+Yield: 100.01686193367782%
+dTime: 7.332097s
+Frames: 220
+
+Method: list
+Yield: 65.86015192241247%
+dTime: 8.452253s
+Frames: 167
+
+Method: list
+Yield: 46.76499938547158%
+dTime: 7.341673s
+Frames: 103
+
+Method: list
+Yield: 36.89742895255925%
+dTime: 11.563588s
+Frames: 128
+
+Method: list
+Yield: 29.83149410427498%
+dTime: 14.190819s
+Frames: 127
+
+Method: list
+Yield: 25.648394193069738%
+dTime: 11.956564s
+Frames: 92
+
+Method: list
+Yield: 56.79386033417732%
+dTime: 17.900996s
+Frames: 305
+
+Method: list
+Yield: 35.872630637657934%
+dTime: 10.035506s
+Frames: 108
+
+Method: list
+Yield: 31.41790991045241%
+dTime: 7.638955s
+Frames: 72
+
+Method: np.vstack
+Yield: 99.96012902545885%
+dTime: 7.369605s
+Frames: 221
+
+Method: np.vstack
+Yield: 99.95245248267193%
+dTime: 7.370171s
+Frames: 221
+
+Method: np.vstack
+Yield: 99.98641093778619%
+dTime: 7.33433s
+Frames: 220
+
