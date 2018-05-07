@@ -318,7 +318,14 @@ class Widget(QWidget):
                 self.output['Resolution'] = self.res
                 json.dump(self.output, f)
 
-        print("Não esqueça de adicionar mais resoluções! #003")
+        print("Zoom -5: aparenta ok\n"
+              "Zoom -4: ok\n"
+              "Zoom -3: apresentou rompimento\n"
+              "Zoom -2: apresentou rompimento\n"
+              "Zoom -1: não lembro\n"
+              "Zoom 0: parece ok\n"
+              "outros: não testei\t"
+              "#003\n")
 
         # Starting threads for startup verification
         self.startup_update_check()
@@ -474,12 +481,12 @@ class Widget(QWidget):
 
     def update_score(self, score, **kwargs):
         self.score = score
-        self.score_label.setText("Score: {}".format(score))
+        self.score_label.setText("Score: {}".format(int(score)))
 
         if 'online_score' in kwargs.keys():
             online_score = kwargs['online_score']
             if kwargs['online_score'] != self.score:
-                self.send_btn.setText("Send Data ({} not sent yet)".format(self.score - online_score))
+                self.send_btn.setText("Send Data ({} not sent yet)".format(int(self.score - online_score)))
 
     def dog_go_idle(self):
         self.icons_label.setMovie(self.dog_idle)
@@ -637,6 +644,7 @@ class Widget(QWidget):
         if code == 200:
             self.send_status_label.setText("Success! Thank you for helping!")
             self.send_status_label.setStyleSheet("color: #28a745;")
+            self.send_btn.setText("Send Data")
 
         else:
             pass
@@ -845,9 +853,9 @@ class LoginWorker(QObject):
                     self.finished.emit()
                     self.continue_run = False
 
-            except Exception as e:
+            except:
                 print("Offline")
-                QThread.sleep(30) #TODO: ver se isso dá um erro (QObject não é Qthread, então não é pra poder ter o method de sleep()
+                QThread.sleep(30)
 
     def stop(self):
         self.continue_run = False

@@ -32,6 +32,7 @@ def send_data(BASE_URL, username, password):
 
         else:
             print("Not logged in.")
+            return 404
 
     except Exception as e:
         print(e)  # No errors raised

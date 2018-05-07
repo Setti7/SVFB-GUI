@@ -16,7 +16,7 @@ def fishing_region(img, region_template_gray, w, h):
 
     region_detected = False
 
-    green_bar_region = img[y - 5:470 + y, 347 + x:488 + x]
+    #green_bar_region = img[y - 5:470 + y, 347 + x:488 + x]
 
     res = cv2.matchTemplate(img, region_template_gray, cv2.TM_CCOEFF_NORMED) #cv.TM_CCORR_NORMED tava usando cv2.TM_CCOEFF_NORMED
 
@@ -73,11 +73,11 @@ class SaveData(QObject):
         if os.path.isfile(frame_file):
             print("Frames file exists, loading previos data!")
             # frames = list(np.load(frame_file))
-            frames =  list(np.load(frame_file))
+            frames =  np.load(frame_file)
 
         else:
             print("Frames file does not exist, starting fresh!")
-            frames = []
+            frames = np.empty(shape=[0, 1])
 
         # Loading template:
         fishing_region_file = 'media\\Images\\fr {}.png'.format(self.zoom)
@@ -118,7 +118,7 @@ class SaveData(QObject):
                 key_pressed = key_check(self.key) # return 1 or 0
 
                 data = [window, key_pressed] # or data = np.array([key_pressed, window], dtype=object)
-                print(data)
+                # print(data)
 
                 # training_data.append(data)
                 training_data = np.vstack((training_data, data))
@@ -138,7 +138,7 @@ class SaveData(QObject):
 
                 if len(frames) == 0:
                     # print('list of frames is new')
-                    frames.append(len(training_data))
+                    frames = np.append(frames, len(training_data))
 
                     print("Frames analysed:\t", len(training_data))
 
@@ -152,7 +152,7 @@ class SaveData(QObject):
 
                 else:
                     frame = len(training_data) - sum(frames)
-                    frames.append(frame)
+                    frames = np.append(frames, frame)
                     print("Frames analysed:\t", frames[-1])
 
                     np.save(frame_file, frames)
@@ -166,9 +166,10 @@ class SaveData(QObject):
                 if self.autosend:
                     with open("config.txt", 'r') as f:
                         output = json.loads(f.read())
-                    BASE_URL = 'http://192.168.1.102'
+                    BASE_URL = 'http://127.0.0.1'
                     response_code = send_files.send_data(BASE_URL, output['User'], output['Password'])
-                    self.data_response_code.emit(response_code)
+                    self.data_response_code.emit(int(response_code))
+                    print('Response code emitted')
 
                 # Necessary to reset the region coordinates after every fishing session.
                 coords = None
