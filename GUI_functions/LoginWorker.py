@@ -44,8 +44,8 @@ class LoginWorker(QObject):
                     self.continue_run = False
 
             except:
-                print("Offline")
-                QThread.sleep(30)
+                self.result.emit({"Offline": True})
+                QThread.sleep(10)
 
     def stop(self):
         self.continue_run = False

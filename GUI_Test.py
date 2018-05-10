@@ -146,6 +146,7 @@ class Widget(QWidget):
         # Menu
         self.menu = QMenuBar(self)
         self.menu_options = self.menu.addMenu('Options')
+        self.menu_options.setEnabled(False)
 
         self.delete_last_data_btn = self.menu_options.addAction("Delete last data")
         self.delete_last_data_btn.triggered.connect(self.delete_last_data)
@@ -368,7 +369,7 @@ class Widget(QWidget):
             if self.session:
                 self.worker = SaveData(self.used_key, self.res, self.zoom, self.auto_send, session=self.session)
         else:
-            self.worker = SaveData(self.used_key, self.res, self.zoom, self.auto_send)
+            self.worker = SaveData(self.used_key, self.res, self.zoom, autosend=False)
 
         self.stop_signal.connect(self.worker.stop)  # connect stop signal to worker stop method
         self.worker.moveToThread(self.thread)
@@ -504,7 +505,7 @@ class Widget(QWidget):
                 QMessageBox.information(self, "Success", string)
 
                 self.update_score(after_score)
-                if self.auto_send and self.username: # TODO: Devo deixar isso aqui ou fazer upload automático da Data, mesmo sem autorizar?
+                if self.auto_send and self.username:
                     self.send_data()
 
                 elif not self.auto_send and self.username:
@@ -541,6 +542,20 @@ class Widget(QWidget):
                 self.accnt_manager.user_logged.connect(self.user_has_logged)
                 self.accnt_manager.rejected.connect(self.login_rejected)
                 self.accnt_manager.exec_()
+
+        if "Offline" in results.keys():
+            self.logout_btn.setVisible(True)
+
+        # region If the thread is not running, set btn as enabled, if thread is undefined, raise error and enable btn
+        try:
+            if not self.thread.isRunning():
+                self.data_start.setEnabled(True)
+        except:
+            self.data_start.setEnabled(True)
+            self.data_start.setText("Start collecting")
+        # endregion
+
+        self.menu_options.setEnabled(True)
 
     def login_rejected(self):
 
@@ -594,6 +609,7 @@ class Widget(QWidget):
 
         self.username = ''
         self.password = ''
+        self.session = None
 
         self.username_label.setText("Not logged")
         self.send_btn.setText("Can't send data while offline")

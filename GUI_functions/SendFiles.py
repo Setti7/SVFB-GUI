@@ -25,6 +25,7 @@ class SendData(QObject):
                 print("File should be sent.")
 
                 if self.send_return:
+                    print(response.status_code)
                     return response.status_code # TODO: response ta sempre sendo None
                 else:
                     self.status_code.emit(response.status_code)

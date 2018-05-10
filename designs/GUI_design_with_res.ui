@@ -137,8 +137,11 @@
       <layout class="QHBoxLayout" name="horizontalLayout">
        <item>
         <widget class="QPushButton" name="data_start">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
          <property name="text">
-          <string>Start collecting</string>
+          <string>Loading</string>
          </property>
         </widget>
        </item>
