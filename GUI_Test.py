@@ -6,47 +6,15 @@ from PyQt5.QtWidgets import QWidget, QApplication, QMessageBox, QDialog, QMenuBa
 from PyQt5.QtCore import QThread, QObject, pyqtSignal, pyqtSlot, QTimer
 from PyQt5 import QtGui
 from PyQt5.uic import loadUi
-from GUI_functions import send_files
-from GUI_functions.save_data import SaveData
+from GUI_functions.SaveData import SaveData
+from GUI_functions.AccountManager import AccountManager
+from GUI_functions.CheckForOnlineScore import QuickCheck
+from GUI_functions.ChangeKey import ChangeKey
+from GUI_functions.LoginWorker import LoginWorker
+from GUI_functions.SendFiles import SendData
 
 BASE_URL = 'http://127.0.0.1'
 # TODO: programa crash quando faz login dps de logout. Aconteceu na viagem com servidor 127.0.0.1. Acho que foi consertado. Erro era em CheckForOnlineScore (usando method QThread.sleep(15000), porém não era um QThread e por isso dava erro
-
-class Worker(QObject):
-    finished = pyqtSignal()  # give worker class a finished signal
-    updated_score = pyqtSignal(int)
-    auto_send_response = pyqtSignal(int)
-
-    def __init__(self, key, res, zoom, autosend, username=None, password=None, parent=None):
-        QObject.__init__(self, parent=parent)
-
-        self.res = res
-        self.zoom = zoom
-        self.autosend = autosend
-        self.key = key
-        self.username = username
-        self.password = password
-
-        resolution = [int(x_or_y) for x_or_y in self.res.split('x')]
-
-        self.work = SaveData(res=resolution, key=self.key, autosend=self.autosend, zoom=self.zoom)
-        self.work.data_response_code.connect(self.response_code_control)
-        self.work.score.connect(self.score_control)
-
-    def response_code_control(self, code):
-        self.auto_send_response.emit(code)
-
-    def score_control(self, score):
-        self.updated_score.emit(score)
-
-    def do_work(self):
-        self.work.main()
-
-        self.finished.emit()  # emit the finished signal when the loop is done
-
-    def stop(self):
-        self.work.stop()
-
 
 class CheckForUpdates(QObject):
     finished = pyqtSignal()
@@ -88,206 +56,9 @@ class CheckForUpdates(QObject):
             self.finished.emit()
 
 
-class CheckForOnlineScore(QObject):
-    online_score = pyqtSignal(int)
-    finished = pyqtSignal()
-
-    def __init__(self, session, parent=None):
-        QObject.__init__(self, parent=parent)
-        self.client = session
-        self.continue_run = True
-
-    def timer_for_checker(self):
-
-        self.timer = QTimer()
-        self.timer.timeout.connect(self.check_online_score)
-        self.timer.start(15000)
-
-    @pyqtSlot()
-    def check_online_score(self):
-        score_url = BASE_URL + '/score'
-
-        try:
-
-            if self.continue_run:
-                response = self.client.get(score_url)
-                output = json.loads(response.text)['score']
-                self.online_score.emit(output)
-                print("ONLINE SCORE: {}".format(output))
-
-                self.timer_for_checker()
-            else:
-                self.finished.emit()
-                print("finish emitted")
-
-        except Exception as e:
-            print(e)
-            print("#004")
-
-
-    def stop(self):
-        self.continue_run = False
-
-
-class ChangeKey(QDialog):
-    new_key = pyqtSignal(str)
-
-    def __init__(self):
-        super().__init__()
-        self.initUI()
-        self.setWindowIcon(QtGui.QIcon('media\\logo\\logo.png'))
-
-        self.save_btn.clicked.connect(self.save)
-        self.close_btn.clicked.connect(self.close)
-        self.change_key.setFocus(True)
-
-    def initUI(self):
-        loadUi('designs\\key_used_dialog.ui', self)
-
-    def save(self):
-        with open("config.txt", "r") as f:
-            output = json.loads(f.read())
-            new_key = str(self.change_key.text()).upper()
-            output['Used key'] = new_key
-
-        with open("config.txt", "w") as f:
-            json.dump(output, f)
-
-        self.new_key.emit(new_key)
-        self.close()
-
-
-class AccountManager(QDialog):
-    user_logged = pyqtSignal(dict)
-
-    def __init__(self):
-        super().__init__()
-        self.initUI()
-
-        # Start session:
-        self.client = requests.Session()
-        self.adapter = requests.adapters.HTTPAdapter(max_retries=2)
-        self.client.mount('http://', self.adapter)  # client.mount('https://', adapter)
-
-    def initUI(self):
-        loadUi('designs\\login_dialog.ui', self)
-
-        self.setWindowIcon(QtGui.QIcon('media\\logo\\logo.png'))
-        self.login_btn.clicked.connect(self.login)
-        self.create_account_btn.clicked.connect(self.create_account)
-        self.login_error.hide()
-        self.create_account_error.hide()
-        self.create_account_frame.hide()
-        self.resize(287, 160)
-        self.login_resized = False
-        self.clicked_first = True
-
-    def create_account(self):
-        if self.clicked_first:
-            width = self.width()
-            height = self.height()
-            self.resize(width, height + 175)
-            self.create_account_error.setText("""Complete the spaces below to \ncreate a new account.""")
-            self.create_account_error.show()
-            self.create_account_btn.clicked.connect(self.create_account_online)
-            self.create_account_frame.show()
-            self.clicked_first = False
-
-        else:
-            self.create_account_btn.clicked.connect(self.create_account_online)
-            self.clicked_first = False
-
-    def create_account_online(self):
-        create_account_url = BASE_URL + "/accounts/create/?next=/home/"
-
-        username = self.create_username.text()
-        password1 = self.create_password.text()
-        password2 = self.create_password_confirm.text()
-        email = self.create_email.text()
-        self.create_resized = False
-
-        try:
-            self.client.get(create_account_url)
-            csrftoken = self.client.cookies['csrftoken']
-            login_data = {'username': username, 'password1': password1, 'password2': password2, 'email': email,
-                          'csrfmiddlewaretoken': csrftoken}
-
-            response = self.client.post(create_account_url, data=login_data)
-            success_text = "Logout from {}".format(username)
-
-            if success_text in str(response.content):
-
-                with open("config.txt", "r") as f:
-                    output = json.loads(f.read())
-                    output['User'] = username
-                    output['Password'] = password1
-
-                with open("config.txt", "w") as f:
-                    json.dump(output, f)
-
-                self.user_logged.emit({"Username": username, "Password": password1, "Session": self.client})
-                self.accept()
-
-            else:
-
-                self.create_password.clear()
-                self.create_password_confirm.clear()
-                self.create_account_error.setText(
-                    """An error ocurred. Please try again.<br>If the error persists, create the account <a href="http://127.0.0.1:8000/accounts/create/?next=/home/"><span style=" text-decoration: underline; color:#0000ff;">here</span></a>""")
-
-        except Exception as e:
-            print(e)
-            print("#010")
-
-    def login(self):
-        login_url = BASE_URL + "/accounts/login/?next=/home/"
-
-        username = self.usernameLineEdit.text()
-        password = self.passwordLineEdit.text()
-
-        try:  # Change this to use the LOGINWORKER, so it is less code
-
-            self.client.get(login_url)
-            csrftoken = self.client.cookies['csrftoken']
-            login_data = {'username': username, 'password': password, 'csrfmiddlewaretoken': csrftoken}
-
-            response = self.client.post(login_url, data=login_data)
-            success_text = "Logout from {}".format(username)
-
-            print(response)
-
-            if success_text in str(response.content):
-
-                with open("config.txt", "r") as f:
-                    output = json.loads(f.read())
-                    output['User'] = username
-                    output['Password'] = password
-
-                with open("config.txt", "w") as f:
-                    json.dump(output, f)
-
-                self.user_logged.emit({"Username": username, "Password": password, "Session": self.client})
-                self.accept()
-
-            else:
-
-                print(self.width(), self.height())
-
-                if not self.login_resized:
-                    width = self.width()
-                    height = self.height()
-                    self.resize(width, height + 20)
-                    self.login_resized = True
-
-                self.login_error.show()
-                self.passwordLineEdit.clear()
-
-        except Exception as e:
-            print(e)
-
-
 class Widget(QWidget):
     stop_signal = pyqtSignal()
+    logout_signal = pyqtSignal()
 
     with open("config.txt", "r") as f:
         output = json.loads(f.read())
@@ -383,9 +154,11 @@ class Widget(QWidget):
 
         self.logout_btn = self.menu_options.addAction("Logout")
         self.logout_btn.triggered.connect(self.logout)
+        self.logout_btn.setVisible(False)
 
         self.login_btn = self.menu_options.addAction("Login")
         self.login_btn.triggered.connect(lambda: self.login_control({'Logged': False}))
+        self.login_btn.setVisible(False)
 
         visit_ranking = self.menu.addAction('Ranking')
         visit_ranking.triggered.connect(lambda: webbrowser.open(BASE_URL + "/ranking"))
@@ -406,6 +179,7 @@ class Widget(QWidget):
             result = False
 
         self.auto_send = result
+
         with open("config.txt", "r") as f:
             output = json.loads(f.read())
             output['Auto-send'] = result
@@ -570,14 +344,32 @@ class Widget(QWidget):
         self.dog_timer.timeout.connect(self.dog_run)
         self.dog_timer.start(370)
 
-        try: # This is necessary to make the dog don't go idle if the user clicks start>stop too fast.
+        try: # TODO: This is necessary to make the dog don't go idle if the user clicks start>stop too fast.
+            """
+            Maybe could be changed to something like this:
+            
+            if hasattr(self, 'dog_timer2'):
+                if self.dog_timer2.isActive():
+                    self.dog_timer2.deleteLater()
+                    
+            ou
+            
+            if hasattr(self, 'dog_timer2'):
+                self.dog_timer2.deleteLater()            
+            """
             self.dog_timer2.deleteLater()
         except:
             pass # fight me
 
         # Thread: __init__
         self.thread = QThread()
-        self.worker = Worker(self.used_key, self.res, self.zoom, self.auto_send)
+
+        if hasattr(self, "session"):
+            if self.session:
+                self.worker = SaveData(self.used_key, self.res, self.zoom, self.auto_send, session=self.session)
+        else:
+            self.worker = SaveData(self.used_key, self.res, self.zoom, self.auto_send)
+
         self.stop_signal.connect(self.worker.stop)  # connect stop signal to worker stop method
         self.worker.moveToThread(self.thread)
 
@@ -585,11 +377,15 @@ class Widget(QWidget):
         self.worker.finished.connect(self.worker.deleteLater)  # connect the workers finished signal to clean up worker
         self.thread.finished.connect(self.thread.deleteLater)  # connect threads finished signal to clean up thread
 
-        self.thread.started.connect(self.worker.do_work)
+        self.thread.started.connect(self.worker.main)
         self.thread.finished.connect(self.worker.stop)
 
-        self.worker.auto_send_response.connect(self.auto_send_response_code_controller)
-        self.worker.updated_score.connect(self.update_score)
+        self.worker.score.connect(self.update_score)
+
+        if hasattr(self, 'score_worker'):
+            self.worker.score.connect(self.score_worker.single_check_online_score)
+
+        self.worker.data_response_code.connect(self.auto_send_response_code_controller) # TODO: this is not calling
 
         self.thread.start()
 
@@ -623,31 +419,37 @@ class Widget(QWidget):
             self.update_score(score)
 
     def send_data(self):
-        response = send_files.send_data(BASE_URL, self.username, self.password)
+        """
+        Creates thread to send data and don't stop the execution of the program while it is uploading.
+        Every time the button is clicked, it is created a new thread, that is deleted after the upload.
+        """
+        try:
+            self.send_data_thread = QThread()  # Thread criado
+            self.send_data_worker = SendData(session=self.session)  # TODO: não está realmente em outro thread pq trava
+            self.send_data_worker.moveToThread(self.send_data_thread)
 
-        if response == 200:
-            self.send_status_label.setText("Success! Thank you for helping!")
-            self.send_status_label.setStyleSheet("color: #28a745;")
-            self.send_btn.setText("Send Data")
+            self.send_data_worker.status_code.connect(self.auto_send_response_code_controller)
 
-        else:
-            pass
-            self.send_status_label.setText('Error! Verify your connection')
-            self.send_status_label.setStyleSheet("color: #dc3545;")
+            self.send_data_worker.status_code.connect(self.send_data_worker.deleteLater) # Finished then deletes thread and worker
+            self.send_data_worker.status_code.connect(self.send_data_thread.quit)
+            self.send_data_thread.finished.connect(self.send_data_thread.deleteLater)
 
-        self.timer = QTimer()
-        self.timer.timeout.connect(self.send_status_label.clear)
-        self.timer.start(5000)
+            self.send_data_thread.started.connect(self.send_data_worker.send_data)
+
+            self.send_data_thread.start()
+            print('Send data thread started #070')
+
+        except Exception as e:
+            print(e)
+            print("Error send data thread #071")
 
     def auto_send_response_code_controller(self, code):
-
         if code == 200:
             self.send_status_label.setText("Success! Thank you for helping!")
             self.send_status_label.setStyleSheet("color: #28a745;")
             self.send_btn.setText("Send Data")
 
         else:
-            pass
             self.send_status_label.setText('Error! Verify your connection')
             self.send_status_label.setStyleSheet("color: #dc3545;")
 
@@ -682,16 +484,14 @@ class Widget(QWidget):
                     print("Frames file does not exist, starting fresh!")
                     frames = []
 
-                training_data = list(np.load(file_name))
-                frames = list(np.load(frame_file))
-
                 before_score = sum(frames)
 
-                print(len(frames))
-                print(frames)
-                print(len(training_data))
+                # print("len frames {}".format(len(frames)))
+                # print("frames {}".format(frames))
+                # print("len training_data: {}".format(len(training_data)))
+                # print("this: {}".format(int(-frames[-1])))
 
-                del training_data[-frames[-1]:] # TODO: acho que poderia ser 'del training_data[frames[0]:]'
+                del training_data[int(-frames[-1]):] # TODO: acho que poderia ser 'del training_data[frames[0]:]'
                 del frames[-1]
 
                 np.save(file_name, training_data)
@@ -699,7 +499,7 @@ class Widget(QWidget):
 
                 after_score = sum(frames)
 
-                string = 'Last data was removed successfully!\n\nScore before deletion:\t' + str(before_score) + '\nYour score now:\t\t' + str(after_score)
+                string = 'Last data was removed successfully!\n\nScore before deletion:\t' + str(int(before_score)) + '\nYour score now:\t\t' + str(int(after_score))
                 print(string)
                 QMessageBox.information(self, "Success", string)
 
@@ -715,30 +515,32 @@ class Widget(QWidget):
                     self.timer.timeout.connect(self.send_status_label.clear)
                     self.timer.start(5000)
 
+                if hasattr(self, 'score_worker'):
+                    self.score_worker.single_check_online_score()
+
             except Exception as e:
                 print(e)
                 QMessageBox.information(self, "Oops!", "Could not delete the Data")
-
 
     # Account functions:
     def login_control(self, results):
         print(results)
 
-        if results['Logged']:
-            self.username = results['Username']
-            self.password = results['Password']
+        if "Logged" in results.keys():
+            if results['Logged']:
 
-            self.user_has_logged({"Username": self.username, "Password": self.password, "Session": results['Session']})
-            self.login_btn.setVisible(False)
-            self.logout_btn.setVisible(True)
+                self.user_has_logged({"Username": results['Username'], "Password": results['Password'], "Session": results['Session']})
+                self.login_btn.setVisible(False)
+                self.logout_btn.setVisible(True)
 
-        else:
-            self.login_btn.setVisible(False)
-            self.logout_btn.setVisible(True)
-            self.accnt_manager = AccountManager()
-            self.accnt_manager.user_logged.connect(self.user_has_logged)
-            self.accnt_manager.rejected.connect(self.login_rejected)
-            self.accnt_manager.exec_()
+            else:
+                print("accnt manager #982")
+                self.login_btn.setVisible(False)
+                self.logout_btn.setVisible(True)
+                self.accnt_manager = AccountManager()
+                self.accnt_manager.user_logged.connect(self.user_has_logged)
+                self.accnt_manager.rejected.connect(self.login_rejected)
+                self.accnt_manager.exec_()
 
     def login_rejected(self):
 
@@ -746,15 +548,16 @@ class Widget(QWidget):
         self.logout_btn.setVisible(False)
         self.login_btn.setVisible(True)
 
-    def call_update_score(self, online_score):
-        self.update_score(self.score, online_score=online_score)
+    # def call_update_score(self, online_score):
+    #     self.update_score(self.score, online_score=online_score)
 
     def user_has_logged(self, user_info):
-        print("USER HAS LOGGED #008")
+        print("User has logged #008")
         self.username = user_info['Username']
         self.password = user_info['Password']
-        client = user_info['Session']
+        self.session = user_info['Session']
 
+        self.send_btn.setText("Send data")
         self.username_label.setText(self.username)
 
         try:
@@ -764,30 +567,31 @@ class Widget(QWidget):
             self.send_btn.setEnabled(True)
             self.auto_send_checkbox.setEnabled(True)
 
-        self.send_btn.setText("Send data")
-
+        # Score Thread initialization
         try:
-
-            self.score_thread = QThread()
-            self.score_worker = CheckForOnlineScore(client)
+            self.score_thread = QThread() # Thread criado
+            self.score_worker = QuickCheck(session=self.session) #
             self.score_worker.moveToThread(self.score_thread)
 
-            self.score_worker.finished.connect(self.score_thread.quit)  # connect the workers finished signal to stop thread
-            self.score_worker.finished.connect(self.score_worker.deleteLater)  # connect the workers finished signal to clean up worker
-            self.score_thread.finished.connect(self.score_thread.deleteLater)  # connect threads finished signal to clean up thread
+            # If logout signal is emmitted, delete the worker and quit then delete the thread too
+            self.logout_signal.connect(self.score_worker.deleteLater)
+            self.logout_signal.connect(self.score_thread.quit)
+            self.score_thread.finished.connect(self.score_thread.deleteLater)
 
-            self.score_thread.started.connect(self.score_worker.check_online_score)
-            self.score_thread.finished.connect(self.score_worker.stop)
-            self.score_worker.online_score.connect(self.call_update_score)
+            self.score_worker.online_score.connect(lambda ol_score: self.update_score(self.score, online_score=ol_score))
 
             self.score_thread.start()
-            print('Thread starting')
+            print('Score thread started #081')
+            self.score_worker.single_check_online_score()
 
         except Exception as e:
             print(e)
-            print("#005")
+            print("Error score thread #005")
+
 
     def logout(self):
+        self.logout_signal.emit()
+
         self.username = ''
         self.password = ''
 
@@ -795,12 +599,6 @@ class Widget(QWidget):
         self.send_btn.setText("Can't send data while offline")
         self.send_btn.setEnabled(False)
         self.auto_send_checkbox.setEnabled(False)
-
-        try:
-            self.score_worker.stop()
-        except Exception as e:
-            print(e)
-            print("#006")
 
         with open('config.txt', 'r') as f:
             output = json.loads(f.read())
@@ -812,54 +610,9 @@ class Widget(QWidget):
 
         self.login_control({"Logged": False})
 
-
-class LoginWorker(QObject):
-    result = pyqtSignal(dict)
-    finished = pyqtSignal()
-
-    def __init__(self, username, password, parent=None):
-        QObject.__init__(self, parent=parent)
-        self.password = password
-        self.username = username
-        self.continue_run = True
-
-    @pyqtSlot()
-    def do_work(self):
-
-        max_retries = 2
-        login_url = BASE_URL + "/accounts/login/?next=/home/"
-
-        while self.continue_run:
-
-            try:
-                client = requests.Session()
-                adapter = requests.adapters.HTTPAdapter(max_retries=max_retries)
-                client.mount('http://', adapter)  # client.mount('https://', adapter)
-
-                client.get(login_url)
-                csrftoken = client.cookies['csrftoken']
-                login_data = {'username': self.username, 'password': self.password, 'csrfmiddlewaretoken': csrftoken}
-
-                response = client.post(login_url, data=login_data)
-                success_text = "Logout from {}".format(self.username)
-
-                if success_text in str(response.content):
-                    self.finished.emit()
-                    self.continue_run = False
-                    self.result.emit({"Logged": True, "Username": self.username, "Password": self.password, "Session": client})
-
-                else:
-                    self.result.emit({"Logged": False})
-                    self.finished.emit()
-                    self.continue_run = False
-
-            except:
-                print("Offline")
-                QThread.sleep(30)
-
-    def stop(self):
-        self.continue_run = False
-
+    def closeEvent(self, event):
+        print("The program is not closing properly!")
+        event.accept() #.ignore
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

@@ -1,1 +1,1 @@
-{"Version": 1.0, "Date": "2018-05-02", "Used key": "C", "Resolution": "1280x800", "Zoom": "0", "Auto-send": true, "User": "test13", "Password": "senha123"}
+{"Version": 1.0, "Date": "2018-05-02", "Used key": "C", "Resolution": "1280x800", "Zoom": "-4", "Auto-send": true, "User": "test5", "Password": "senha123"}

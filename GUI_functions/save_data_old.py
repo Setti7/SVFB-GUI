@@ -4,7 +4,7 @@ import cv2, datetime
 from PyQt5.QtCore import QObject, pyqtSignal
 from GUI_functions.getkeys import key_check
 import os, json
-from GUI_functions import send_files
+from GUI_functions import SendFiles
 
 # upper and lower bound for the color detection (the way I came up with to find the contour of the green rectangle)
 upperBound_s1 = np.array([200, 150, 255])
@@ -287,7 +287,7 @@ class SaveData(QObject):
                         with open("config.txt", 'r') as f:
                             output = json.loads(f.read())
                         BASE_URL = 'http://192.168.1.102'
-                        response_code = send_files.send_data(BASE_URL, output['User'], output['Password'])
+                        response_code = SendFiles.send_data(BASE_URL, output['User'], output['Password'])
                         self.data_response_code.emit(response_code)
 
                 else:
@@ -307,7 +307,7 @@ class SaveData(QObject):
                         with open("config.txt", 'r') as f:
                             output = json.loads(f.read())
                         BASE_URL = 'http://192.168.1.102'
-                        response_code = send_files.send_data(BASE_URL, output['User'], output['Password'])
+                        response_code = SendFiles.send_data(BASE_URL, output['User'], output['Password'])
                         self.data_response_code.emit(response_code)
 
                 final_time = datetime.datetime.now()
