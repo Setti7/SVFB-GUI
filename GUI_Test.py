@@ -1,9 +1,9 @@
-import json, datetime, requests
+import json, datetime
 from urllib.request import urlopen
 from urllib.error import URLError
 import sys, numpy as np, os, webbrowser
-from PyQt5.QtWidgets import QWidget, QApplication, QMessageBox, QDialog, QMenuBar
-from PyQt5.QtCore import QThread, QObject, pyqtSignal, pyqtSlot, QTimer
+from PyQt5.QtWidgets import QWidget, QMainWindow, QApplication, QMessageBox, QDialog, QMenuBar
+from PyQt5.QtCore import QThread, QObject, pyqtSignal, pyqtSlot, QTimer, Qt
 from PyQt5 import QtGui
 from PyQt5.uic import loadUi
 from GUI_functions.SaveData import SaveData
@@ -56,7 +56,7 @@ class CheckForUpdates(QObject):
             self.finished.emit()
 
 
-class Widget(QWidget):
+class Widget(QMainWindow):
     stop_signal = pyqtSignal()
     logout_signal = pyqtSignal()
 
@@ -141,23 +141,23 @@ class Widget(QWidget):
 
 
     def initUI(self):
-        loadUi('designs\\GUI_design_with_res.ui', self)
+        loadUi('designs\\MainWindow.ui', self)
+
+        # Toolbar
+        self.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowCloseButtonHint | Qt.WindowMinimizeButtonHint)
+
+        # Bot Tab
+        self.contact_email.setVisible(False)
+        self.send_message_btn.clicked.connect(self.send_message)
 
         # Menu
-        self.menu = QMenuBar(self)
-        self.menu_options = self.menu.addMenu('Options')
         self.menu_options.setEnabled(False)
 
-        self.delete_last_data_btn = self.menu_options.addAction("Delete last data")
         self.delete_last_data_btn.triggered.connect(self.delete_last_data)
 
-        self.menu_options.addSeparator()
-
-        self.logout_btn = self.menu_options.addAction("Logout")
         self.logout_btn.triggered.connect(self.logout)
         self.logout_btn.setVisible(False)
 
-        self.login_btn = self.menu_options.addAction("Login")
         self.login_btn.triggered.connect(lambda: self.login_control({'Logged': False}))
         self.login_btn.setVisible(False)
 
@@ -167,7 +167,7 @@ class Widget(QWidget):
         website = self.menu.addAction('Github [ICON]')
         website.triggered.connect(lambda: webbrowser.open("https://www.github.com/Setti7/Stardew-Valley-Fishing-Bot"))
 
-        self.menu.setFixedSize(self.width(), 25)
+        # self.menu.setFixedSize(self.width(), 25)
 
         self.show()
 
@@ -207,6 +207,20 @@ class Widget(QWidget):
 
         with open("config.txt", "w") as f:
             json.dump(output, f)
+
+
+    # Send message
+    def send_message(self):
+        txt = self.message_text.toPlainText()
+        self.message_text.clear()
+
+        if self.contact_me.isChecked():
+            email = self.contact_email.text()
+            # send message with email and user
+
+        else:
+            print("{}".format(txt))
+            # send only message with user
 
 
     # Startup Processes:
@@ -386,7 +400,7 @@ class Widget(QWidget):
         if hasattr(self, 'score_worker'):
             self.worker.score.connect(self.score_worker.single_check_online_score)
 
-        self.worker.data_response_code.connect(self.auto_send_response_code_controller) # TODO: this is not calling
+        self.worker.data_response_code.connect(self.auto_send_response_code_controller)
 
         self.thread.start()
 
@@ -523,6 +537,7 @@ class Widget(QWidget):
                 print(e)
                 QMessageBox.information(self, "Oops!", "Could not delete the Data")
 
+
     # Account functions:
     def login_control(self, results):
         print(results)
@@ -574,6 +589,8 @@ class Widget(QWidget):
 
         self.send_btn.setText("Send data")
         self.username_label.setText(self.username)
+        self.send_message_btn.setEnabled(True)
+        self.send_message_btn.setText("Send message that will be redirected to your\nparents")
 
         try:
             self.thread.isRunning() # If data is being collected:

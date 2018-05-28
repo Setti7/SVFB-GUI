@@ -28,8 +28,12 @@ def fishing_region(img, region_template_gray, w, h):
         x1, y1 = pt[0], pt[1]  # + y_adjustment
         x2, y2 = pt[0] + w, pt[1] + h  # + y_adjustment
 
+
+        # TODO: Fix this constants so the image can be resized to 0.3*size
         coords_list = [y1 - 10, y2 + 10, x1 - 25, x2 + 25] # these number are added to give a little margin for the TM
         green_bar_region = img[y1: y2, x1 + 55: x2 - 35]
+
+        green_bar_region = cv2.resize(green_bar_region, None, fx=0.3, fy=0.3) # TODO: optimize this resizing
 
         return {"Detected": True, "Region": green_bar_region, "Coords": coords_list}
 
@@ -67,7 +71,6 @@ class SaveData(QObject):
         # region Checking if data files already exists
         if os.path.isfile(file_name):
             print("Training file exists, loading previos data!")
-            # training_data = list(np.load(file_name))
             training_data = np.load(file_name)
 
         else:
@@ -76,7 +79,6 @@ class SaveData(QObject):
 
         if os.path.isfile(frame_file):
             print("Frames file exists, loading previos data!")
-            # frames = list(np.load(frame_file))
             frames =  np.load(frame_file)
 
         else:
@@ -87,6 +89,7 @@ class SaveData(QObject):
         # Loading template:
         fishing_region_file = 'media\\Images\\fr {}.png'.format(self.zoom)
         region_template = cv2.imread(fishing_region_file)
+        # region_template = cv2.resize(region_template, None, fx=0.3, fy=0.3) # TODO: using smaller img for less space used
         region_template = cv2.cvtColor(region_template, cv2.COLOR_BGR2GRAY)
         wr, hr = region_template.shape[::-1] # 121, 474
 
@@ -100,6 +103,8 @@ class SaveData(QObject):
 
             res_x, res_y = self.res
             screen = grabscreen.grab_screen(region=(0, 40, res_x, res_y+40 )) # Return gray screen
+
+            # screen = cv2.resize(screen, None, fx=0.3, fy=0.3) # TODO: using smaller img for less space used
 
             # Finds the thin area the fish stays at
             if coords:
@@ -140,52 +145,47 @@ class SaveData(QObject):
             # If area not detected this frame, but was on the last one
             if not region["Detected"] and was_fishing:
                 final_time = datetime.datetime.now()
+                was_fishing = False
 
                 if len(frames) == 0:
                     # print('list of frames is new')
-                    frames = np.append(frames, len(training_data))
-
-                    print("Frames analysed:\t", len(training_data))
-
-                    np.save(frame_file, frames)
-
-                    print("Saving...")
-                    np.save(file_name, training_data)
-
-                    was_fishing = False
+                    new_frames = np.float64(len(training_data))
 
                 else:
-                    frame = len(training_data) - sum(frames)
-                    frames = np.append(frames, frame)
-                    print("Frames analysed:\t", frames[-1])
+                    new_frames = len(training_data) - sum(frames)
+
+                print("Frames analysed:\t", new_frames)
+
+                if new_frames >= 75:
+                    frames = np.append(frames, new_frames)
 
                     np.save(frame_file, frames)
 
                     print("Saving...")
                     np.save(file_name, training_data)
 
-                    was_fishing = False
+                    if self.autosend:
+                        send = SendData(self.session, send_return=True)
+                        result = send.send_data()
+                        print("Result code: ", result)
+                        self.data_response_code.emit(result)
 
-                if self.autosend:
-                    send = SendData(self.session)
-                    result = send.send_data() #TODO: result tá sempre sendo None
-                    print(result)
-                    self.data_response_code.emit(result)
-                    print("Data automaticly sent #212")
+                    self.score.emit(sum(frames))
 
-                self.score.emit(sum(frames))
+                else:
+                    print("Not saving!")
 
                 # Necessary to reset the region coordinates after every fishing session.
                 coords = None
 
                 # Measurements:
-                time_delta = final_time - initial_time
-                frame_yield = 100*frames[-1]/(time_delta.total_seconds()*30)
-                print("ΔTime: {}".format(time_delta.total_seconds()))
-                print("Yield: {}%".format(frame_yield))
+                time_delta = (final_time - initial_time).total_seconds()
+                median_fps = new_frames/time_delta
+                print("Median FPS: {}".format(median_fps))
+                print("ΔTime: {}".format(time_delta))
 
                 with open("Data\\log.txt", 'a') as f:
-                    f.write("Method: {}\nYield: {}%\ndTime: {}s\nFrames: {}\n\n".format(method, round(frame_yield, 2), time_delta.total_seconds(), frames[-1]))
+                    f.write("Method: {}\nMedian FPS: {}\ndTime: {}s\nFrames: {}\n\n".format(method, round(median_fps, 2), time_delta, new_frames))
 
         self.finished.emit()
 
