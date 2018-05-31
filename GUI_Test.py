@@ -12,6 +12,7 @@ from GUI_functions.CheckForOnlineScore import QuickCheck
 from GUI_functions.ChangeKey import ChangeKey
 from GUI_functions.LoginWorker import LoginWorker
 from GUI_functions.SendFiles import SendData
+from GUI_functions.Loading import Loading
 
 BASE_URL = 'http://127.0.0.1'
 # TODO: programa crash quando faz login dps de logout. Aconteceu na viagem com servidor 127.0.0.1. Acho que foi consertado. Erro era em CheckForOnlineScore (usando method QThread.sleep(15000), porém não era um QThread e por isso dava erro
@@ -47,7 +48,6 @@ class CheckForUpdates(QObject):
 
             if Widget.date < date:
                 self.update_text.emit([Widget.version, version, changes, critical])
-                self.finished.emit()
 
         except URLError:
             print("Update timeout")
@@ -99,8 +99,16 @@ class Widget(QMainWindow):
               "#003\n")
 
         # Starting threads for startup verification
+        self.loading_dialog = Loading()
+
+        self.auth_done = False
+        self.update_check_done = False
         self.startup_update_check()
         self.startup_authorize_user()
+
+        self.loading_timer = QTimer()
+        self.loading_timer.timeout.connect(self.loading)
+        self.loading_timer.start(200)
 
         # Icons:
         self.setWindowIcon(QtGui.QIcon('media\\logo\\logo.png'))
@@ -169,8 +177,10 @@ class Widget(QMainWindow):
 
         # self.menu.setFixedSize(self.width(), 25)
 
-        self.show()
-
+    def loading(self):
+        if self.auth_done and self.update_check_done:
+            self.loading_dialog.close()
+            self.show()
 
     # Checking if auto_send checkbox is True/False
     def auto_send_state_changed(self):
@@ -229,18 +239,20 @@ class Widget(QMainWindow):
         self.checker = CheckForUpdates()
         self.checker.moveToThread(self.check_thread)
 
-        self.checker.finished.connect(self.check_thread.quit)  # connect the workers finished signal to stop thread
-
-        self.checker.finished.connect(
-            self.checker.deleteLater)  # connect the workers finished signal to clean up worker
         self.checker.update_text.connect(self.update_message_box)
-
-        self.check_thread.finished.connect(
-            self.check_thread.deleteLater)  # connect threads finished signal to clean up thread
+        self.checker.finished.connect(self.update_check_over)
 
         self.check_thread.started.connect(self.checker.do_work)
-
         self.check_thread.start()
+
+    def update_check_over(self):
+        self.checker.deleteLater()
+        self.check_thread.quit()
+        self.check_thread.deleteLater()
+        self.check_thread.wait()
+
+        self.update_check_done = True
+
 
     def startup_authorize_user(self):
 
@@ -249,19 +261,16 @@ class Widget(QMainWindow):
         self.login_worker = LoginWorker(self.username, self.password)
         self.login_worker.moveToThread(self.login_thread)
 
-        self.login_worker.finished.connect(self.login_thread.quit)  # connect the workers finished signal to stop thread
-        self.login_worker.finished.connect(
-            self.login_worker.deleteLater)  # connect the workers finished signal to clean up worker
-        self.login_thread.finished.connect(
-            self.login_thread.deleteLater)  # connect threads finished signal to clean up thread
+        self.login_worker.result.connect(self.login_control)
+
+        self.login_worker.result.connect(self.login_worker.deleteLater)
+        self.login_worker.result.connect(self.login_thread.quit)
+
+        self.login_thread.finished.connect(self.login_thread.deleteLater)
+        self.login_thread.finished.connect(self.login_thread.wait)
 
         self.login_thread.started.connect(self.login_worker.do_work)
-        self.login_thread.finished.connect(self.login_worker.stop)
-
-        self.login_worker.result.connect(self.login_control)  # connect the workers finished signal to stop thread
-
         self.login_thread.start()
-
 
     # Update Widget elements
     def update_key(self, key): # Updating used key for fishing after ChangeKey dialog:
@@ -541,6 +550,7 @@ class Widget(QMainWindow):
     # Account functions:
     def login_control(self, results):
         print(results)
+        self.auth_done = True
 
         if "Logged" in results.keys():
             if results['Logged']:
