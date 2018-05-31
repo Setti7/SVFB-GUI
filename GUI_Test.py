@@ -1,6 +1,4 @@
 import json, datetime
-from urllib.request import urlopen
-from urllib.error import URLError
 import sys, numpy as np, os, webbrowser
 from PyQt5.QtWidgets import QWidget, QMainWindow, QApplication, QMessageBox, QDialog, QMenuBar
 from PyQt5.QtCore import QThread, QObject, pyqtSignal, pyqtSlot, QTimer, Qt
@@ -13,47 +11,13 @@ from GUI_functions.ChangeKey import ChangeKey
 from GUI_functions.LoginWorker import LoginWorker
 from GUI_functions.SendFiles import SendData
 from GUI_functions.Loading import Loading
+from GUI_functions.CheckForUpdates import CheckForUpdates
 
 BASE_URL = 'http://127.0.0.1'
-# TODO: programa crash quando faz login dps de logout. Aconteceu na viagem com servidor 127.0.0.1. Acho que foi consertado. Erro era em CheckForOnlineScore (usando method QThread.sleep(15000), porém não era um QThread e por isso dava erro
 
-class CheckForUpdates(QObject):
-    finished = pyqtSignal()
-    update_text = pyqtSignal(list)
 
-    def __init__(self, parent=None):
-        QObject.__init__(self, parent=parent)
-
-    @pyqtSlot()
-    def do_work(self):
-        try:
-            data = urlopen(BASE_URL + "/version-control").read()
-            output = json.loads(data)
-
-            changes = []
-            versions = []
-            critical = False
-            for data in output['Version Control']:
-                if datetime.datetime.strptime(data['Date'], '%Y-%m-%d') > Widget.date:
-                    changes.append(data['Changes'])
-                    versions.append(float(data['Version']))
-                if data['Critical']:
-                    critical = True
-
-            changes = "Changes since v{} (your current version):\n".format(Widget.version) + "\n".join(changes)
-
-            last_info = output["Version Control"][0]
-            version = last_info['Version']
-            date = datetime.datetime.strptime(last_info['Date'], '%Y-%m-%d')
-
-            if Widget.date < date:
-                self.update_text.emit([Widget.version, version, changes, critical])
-
-        except URLError:
-            print("Update timeout")
-
-        finally:
-            self.finished.emit()
+def except_hook(cls, exception, traceback):
+    sys.__excepthook__(cls, exception, traceback)
 
 
 class Widget(QMainWindow):
@@ -103,12 +67,14 @@ class Widget(QMainWindow):
 
         self.auth_done = False
         self.update_check_done = False
-        self.startup_update_check()
+        self.call_update_box = False
         self.startup_authorize_user()
+        self.startup_update_check()
 
         self.loading_timer = QTimer()
         self.loading_timer.timeout.connect(self.loading)
-        self.loading_timer.start(200)
+        self.loading_timer.start(3000)
+
 
         # Icons:
         self.setWindowIcon(QtGui.QIcon('media\\logo\\logo.png'))
@@ -178,9 +144,14 @@ class Widget(QMainWindow):
         # self.menu.setFixedSize(self.width(), 25)
 
     def loading(self):
+
         if self.auth_done and self.update_check_done:
-            self.loading_dialog.close()
-            self.show()
+                self.loading_timer.stop()
+                self.loading_timer.deleteLater()
+
+                self.call_update_box = True
+                self.loading_dialog.close()
+                self.show()
 
     # Checking if auto_send checkbox is True/False
     def auto_send_state_changed(self):
@@ -239,17 +210,20 @@ class Widget(QMainWindow):
         self.checker = CheckForUpdates()
         self.checker.moveToThread(self.check_thread)
 
-        self.checker.update_text.connect(self.update_message_box)
-        self.checker.finished.connect(self.update_check_over)
+        self.checker.update_text.connect(self.update_check_over)
 
         self.check_thread.started.connect(self.checker.do_work)
         self.check_thread.start()
 
-    def update_check_over(self):
+    def update_check_over(self, update_info):
         self.checker.deleteLater()
         self.check_thread.quit()
         self.check_thread.deleteLater()
         self.check_thread.wait()
+
+        self.update_timer = QTimer()
+        self.update_timer.timeout.connect(lambda: self.update_message_box(update_info))
+        self.update_timer.start(100)
 
         self.update_check_done = True
 
@@ -271,6 +245,45 @@ class Widget(QMainWindow):
 
         self.login_thread.started.connect(self.login_worker.do_work)
         self.login_thread.start()
+
+
+    def retry_connection(self, *args):
+        # *args are necessary so it can be called from the mousePressEvent
+
+        # Label
+        self.username_label.setText("Connecting")
+        self.username_label.mousePressEvent = lambda x: print("Wait motherfucker")
+
+        # Thread:
+        self.login_thread = QThread()
+        self.login_worker = LoginWorker(self.username, self.password)
+        self.login_worker.moveToThread(self.login_thread)
+
+        # Finished proccess
+        self.login_worker.result.connect(self.login_worker.deleteLater)
+        self.login_worker.result.connect(self.login_thread.quit)
+        self.login_thread.finished.connect(self.login_thread.deleteLater)
+
+        # Response from thread
+        self.login_worker.result.connect(self.login_control)
+
+        # Thread starting
+        self.login_thread.started.connect(self.login_worker.do_work)
+        self.login_thread.start()
+
+
+        # Verifying new versions:
+        self.check_thread = QThread()
+        self.checker = CheckForUpdates()
+        self.checker.moveToThread(self.check_thread)
+
+        self.checker.update_text.connect(self.update_check_over)
+
+        self.check_thread.started.connect(self.checker.do_work)
+        self.check_thread.start()
+
+        # As gui has already loaded, we jump through the code made to stop the message box from appearing while loading
+        self.call_update_box = True
 
     # Update Widget elements
     def update_key(self, key): # Updating used key for fishing after ChangeKey dialog:
@@ -300,52 +313,66 @@ class Widget(QMainWindow):
     # Notification of new version:
     def update_message_box(self, update_info):
 
-        current_version, new_version, changes, critical = update_info
 
-        if not critical:
-            updateBox = QMessageBox()
-            updateBox.setIcon(QMessageBox.Information)
-            updateBox.setText("There is a new version available!")
-            updateBox.setInformativeText(
-                """Please click "Ok" to be redirected to the download page. You can also see the changelog details below!"""
-            )
-            updateBox.setWindowTitle("Update required")
-            updateBox.setWindowIcon(QtGui.QIcon('media\\logo\\logo.png'))
+        if self.call_update_box:
+            self.update_timer.stop()
+            self.update_timer.deleteLater()
 
-            text = """Version available: {1}\n\n{2}""".format(current_version, new_version,
-                                                              changes)
-            updateBox.setDetailedText(text)
-
-            updateBox.setEscapeButton(QMessageBox.Close)
-            updateBox.addButton(QMessageBox.Close)
-            self.v_label.setText("v{} (v{} available)".format(self.version, new_version))
-
-            ok = updateBox.addButton(QMessageBox.Ok)
-            ok.clicked.connect(lambda: webbrowser.open(BASE_URL + "/home"))
-            updateBox.exec_()
+            update = update_info['Update']
 
         else:
-            updateBox = QMessageBox()
-            updateBox.setIcon(QMessageBox.Warning)
-            updateBox.setText("<strong>Your version is super outdated and is not useful anymore!</strong>")
-            updateBox.setInformativeText(
-                """Please click <i>Ok</i> to download the newer one. You can also see the changelog details below! <small>(The critical change is highlighted)</small>"""
-            )
-            updateBox.setWindowTitle("Unsupported Software")
-            updateBox.setWindowIcon(QtGui.QIcon('media\\logo\\logo.png'))
+            update = False
 
-            text = """Version available: {1}\n\n{2}""".format(current_version, new_version,
-                                                              changes)
-            updateBox.setDetailedText(text)
+        if update:
+            current_version = update_info['Current Version']
+            new_version = update_info['New Version']
+            changes = update_info['Changes']
+            critical = update_info['Critical']
 
-            updateBox.setEscapeButton(QMessageBox.Close)
-            updateBox.addButton(QMessageBox.Close)
-            self.v_label.setText("v{} (v{} REQUIRED)".format(self.version, new_version))
+            if not critical:
+                updateBox = QMessageBox()
+                updateBox.setIcon(QMessageBox.Information)
+                updateBox.setText("There is a new version available!")
+                updateBox.setInformativeText(
+                    """Please click "Ok" to be redirected to the download page. You can also see the changelog details below!"""
+                )
+                updateBox.setWindowTitle("Update required")
+                updateBox.setWindowIcon(QtGui.QIcon('media\\logo\\logo.png'))
 
-            ok = updateBox.addButton(QMessageBox.Ok)
-            ok.clicked.connect(lambda: webbrowser.open(BASE_URL + "/home"))
-            updateBox.exec_()
-            self.close()
+                text = """Version available: {1}\n\n{2}""".format(current_version, new_version,
+                                                                  changes)
+                updateBox.setDetailedText(text)
+
+                updateBox.setEscapeButton(QMessageBox.Close)
+                updateBox.addButton(QMessageBox.Close)
+                self.v_label.setText("v{} (v{} available)".format(self.version, new_version))
+
+                ok = updateBox.addButton(QMessageBox.Ok)
+                ok.clicked.connect(lambda: webbrowser.open(BASE_URL + "/home"))
+                updateBox.exec_()
+
+            else:
+                updateBox = QMessageBox()
+                updateBox.setIcon(QMessageBox.Warning)
+                updateBox.setText("<strong>Your version is super outdated and is not useful anymore!</strong>")
+                updateBox.setInformativeText(
+                    """Please click <i>Ok</i> to download the newer one. You can also see the changelog details below! <small>(The critical change is highlighted)</small>"""
+                )
+                updateBox.setWindowTitle("Unsupported Software")
+                updateBox.setWindowIcon(QtGui.QIcon('media\\logo\\logo.png'))
+
+                text = """Version available: {1}\n\n{2}""".format(current_version, new_version,
+                                                                  changes)
+                updateBox.setDetailedText(text)
+
+                updateBox.setEscapeButton(QMessageBox.Close)
+                updateBox.addButton(QMessageBox.Close)
+                self.v_label.setText("v{} (v{} REQUIRED)".format(self.version, new_version))
+
+                ok = updateBox.addButton(QMessageBox.Ok)
+                ok.clicked.connect(lambda: webbrowser.open(BASE_URL + "/home"))
+                updateBox.exec_()
+                self.close()
 
 
     # Data processes:
@@ -368,19 +395,7 @@ class Widget(QMainWindow):
         self.dog_timer.timeout.connect(self.dog_run)
         self.dog_timer.start(370)
 
-        try: # TODO: This is necessary to make the dog don't go idle if the user clicks start>stop too fast.
-            """
-            Maybe could be changed to something like this:
-            
-            if hasattr(self, 'dog_timer2'):
-                if self.dog_timer2.isActive():
-                    self.dog_timer2.deleteLater()
-                    
-            ou
-            
-            if hasattr(self, 'dog_timer2'):
-                self.dog_timer2.deleteLater()            
-            """
+        try: # this is necessary to make the dog don't go idle if the user clicks start>stop too fast.
             self.dog_timer2.deleteLater()
         except:
             pass # fight me
@@ -570,6 +585,10 @@ class Widget(QMainWindow):
 
         if "Offline" in results.keys():
             self.logout_btn.setVisible(True)
+            self.username_label.mousePressEvent = self.retry_connection
+            self.username_label.setText(
+                '<a href="#"><span style=" text-decoration: underline; color:#0000ff;">Retry Connection</span></a>'
+            )
 
         # region If the thread is not running, set btn as enabled, if thread is undefined, raise error and enable btn
         try:
