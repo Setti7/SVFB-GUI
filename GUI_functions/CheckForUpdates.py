@@ -9,7 +9,7 @@ BASE_URL = 'http://127.0.0.1'
 class CheckForUpdates(QObject):
     update_text = pyqtSignal(dict)
 
-    with open("config.txt", "r") as f:
+    with open("config.json", "r") as f:
         output = json.loads(f.read())
         version = output['Version']
         date = datetime.datetime.strptime(output['Date'], '%Y-%m-%d')

@@ -10,5 +10,5 @@ data = {"Version": 1.0,
         "Password": "idk"
         }
 
-with open('config.txt', 'w') as f:
+with open('config.json', 'w') as f:
     json.dump(data, f)

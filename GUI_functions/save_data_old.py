@@ -284,7 +284,7 @@ class SaveData(QObject):
                     self.score.emit(sum(frames))
 
                     if self.autosend:
-                        with open("config.txt", 'r') as f:
+                        with open("config.json", 'r') as f:
                             output = json.loads(f.read())
                         BASE_URL = 'http://192.168.1.102'
                         response_code = SendFiles.send_data(BASE_URL, output['User'], output['Password'])
@@ -304,7 +304,7 @@ class SaveData(QObject):
                     self.score.emit(sum(frames))
 
                     if self.autosend:
-                        with open("config.txt", 'r') as f:
+                        with open("config.json", 'r') as f:
                             output = json.loads(f.read())
                         BASE_URL = 'http://192.168.1.102'
                         response_code = SendFiles.send_data(BASE_URL, output['User'], output['Password'])

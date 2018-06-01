@@ -66,12 +66,12 @@ class AccountManager(QDialog):
 
             if success_text in str(response.content):
 
-                with open("config.txt", "r") as f:
+                with open("config.json", "r") as f:
                     output = json.loads(f.read())
                     output['User'] = username
                     output['Password'] = password1
 
-                with open("config.txt", "w") as f:
+                with open("config.json", "w") as f:
                     json.dump(output, f)
 
                 self.user_logged.emit({"Username": username, "Password": password1, "Session": self.client})
@@ -107,12 +107,12 @@ class AccountManager(QDialog):
 
             if success_text in str(response.content):
 
-                with open("config.txt", "r") as f:
+                with open("config.json", "r") as f:
                     output = json.loads(f.read())
                     output['User'] = username
                     output['Password'] = password
 
-                with open("config.txt", "w") as f:
+                with open("config.json", "w") as f:
                     json.dump(output, f)
 
                 self.user_logged.emit({"Username": username, "Password": password, "Session": self.client})

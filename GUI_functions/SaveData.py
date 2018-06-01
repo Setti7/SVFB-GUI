@@ -1,3 +1,8 @@
+import logging
+logger = logging.getLogger(__name__)
+logging.basicConfig(filename='log.log', level=logging.INFO, format='%(levelname)s (%(name)s):\t%(asctime)s \t %(message)s', datefmt='%d/%m/%Y %I:%M:%S')
+
+
 import numpy as np
 import cv2, datetime
 from PyQt5.QtCore import QObject, pyqtSignal
@@ -60,44 +65,40 @@ class SaveData(QObject):
         self.run = True
 
     def main(self):
-        print("Running on: {}x{}".format(self.res[0], self.res[1]))
-        print("Using {} key".format(self.key))
-        print("Autosend: {}".format(self.autosend))
-        print("Zoom: {}".format(self.zoom))
 
         file_name = 'Data\\training_data.npy'
         frame_file = 'Data\\frames.npy'
 
         # region Checking if data files already exists
         if os.path.isfile(file_name):
-            print("Training file exists, loading previos data!")
+            logger.info("Loading training data file")
             training_data = np.load(file_name)
 
         else:
-            print("Training file does not exist, starting fresh!")
+            logger.warning("Training data file does not exist")
             training_data = np.empty(shape=[0, 2])
 
         if os.path.isfile(frame_file):
-            print("Frames file exists, loading previos data!")
+            logger.info("Loading frames file")
             frames =  np.load(frame_file)
 
         else:
-            print("Frames file does not exist, starting fresh!")
+            logger.warning("Frames file does not exist")
             frames = np.empty(shape=[0, 1])
         # endregion
 
         # Loading template:
+        logger.info("Loading template image")
         fishing_region_file = 'media\\Images\\fr {}.png'.format(self.zoom)
         region_template = cv2.imread(fishing_region_file)
         # region_template = cv2.resize(region_template, None, fx=0.3, fy=0.3) # TODO: using smaller img for less space used
         region_template = cv2.cvtColor(region_template, cv2.COLOR_BGR2GRAY)
         wr, hr = region_template.shape[::-1] # 121, 474
 
-        print(fishing_region_file)
-
         was_fishing = False
         coords = None
-        counter = []
+        # counter = []
+        logger.info("Data started")
 
         while self.run:
 
@@ -110,16 +111,16 @@ class SaveData(QObject):
             if coords:
                 # If there was found coords, cut the screen size to look again for the template, so it uses less resources
                 region = fishing_region(screen[coords[0]:coords[1], coords[2]:coords[3]], region_template, wr, hr) #[y1, y2, x1 + 55, x2 - 35]
-                counter.append(1)
-                if len(counter) > 29:
-                    print("Finding template in limited space")
-                    counter.clear()
+                # counter.append(1)
+                # if len(counter) > 29:
+                #     print("Finding template in limited space")
+                #     counter.clear()
             else:
                 region = fishing_region(screen, region_template, wr, hr)
-                counter.append(1)
-                if len(counter) > 49:
-                    print("Finding template on full resolution")
-                    counter.clear()
+                # counter.append(1)
+                # if len(counter) > 49:
+                #     print("Finding template on full resolution")
+                #     counter.clear()
 
             if region["Detected"]:
 
@@ -139,11 +140,12 @@ class SaveData(QObject):
                 # For the first frame of the detected region, get its coordinates to reduce the area to look for it again
                 if not coords:
                     coords = region["Coords"]
-                    print("Coordinates found")
+                    logger.info("Coordinates found: %s" % coords)
                     initial_time = datetime.datetime.now()
 
             # If area not detected this frame, but was on the last one
             if not region["Detected"] and was_fishing:
+                logger.info("Fishing finished")
                 final_time = datetime.datetime.now()
                 was_fishing = False
 
@@ -154,7 +156,7 @@ class SaveData(QObject):
                 else:
                     new_frames = len(training_data) - sum(frames)
 
-                print("Frames analysed:\t", new_frames)
+                print("Frames analysed: %s" % new_frames)
 
                 if new_frames >= 75:
                     frames = np.append(frames, new_frames)
@@ -174,6 +176,7 @@ class SaveData(QObject):
 
                 else:
                     print("Not saving!")
+                    logger.debug("Data too small")
 
                 # Necessary to reset the region coordinates after every fishing session.
                 coords = None
@@ -185,7 +188,10 @@ class SaveData(QObject):
                 print("ΔTime: {}".format(time_delta))
 
                 with open("Data\\log.txt", 'a') as f:
-                    f.write("Method: {}\nMedian FPS: {}\ndTime: {}s\nFrames: {}\n\n".format(method, round(median_fps, 2), time_delta, new_frames))
+                    f.write("Method: {}\nMedian FPS: {}\ndTime: {}s\nFrames: {}\n\n".format(
+                        method,
+                        round(median_fps, 2),
+                        time_delta, new_frames))
 
         self.finished.emit()
 

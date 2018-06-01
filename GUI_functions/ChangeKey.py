@@ -20,12 +20,12 @@ class ChangeKey(QDialog):
         loadUi('designs\\key_used_dialog.ui', self)
 
     def save(self):
-        with open("config.txt", "r") as f:
+        with open("config.json", "r") as f:
             output = json.loads(f.read())
             new_key = str(self.change_key.text()).upper()
             output['Used key'] = new_key
 
-        with open("config.txt", "w") as f:
+        with open("config.json", "w") as f:
             json.dump(output, f)
 
         self.new_key.emit(new_key)

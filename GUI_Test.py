@@ -1,4 +1,8 @@
-import json, datetime
+import logging
+logger = logging.getLogger(__name__)
+logging.basicConfig(filename='log.log', level=logging.INFO, format='%(levelname)s (%(name)s):\t%(asctime)s \t %(message)s', datefmt='%d/%m/%Y %I:%M:%S')
+
+import json, datetime, random
 import sys, numpy as np, os, webbrowser
 from PyQt5.QtWidgets import QWidget, QMainWindow, QApplication, QMessageBox, QDialog, QMenuBar
 from PyQt5.QtCore import QThread, QObject, pyqtSignal, pyqtSlot, QTimer, Qt
@@ -14,17 +18,19 @@ from GUI_functions.Loading import Loading
 from GUI_functions.CheckForUpdates import CheckForUpdates
 
 BASE_URL = 'http://127.0.0.1'
-
+DEV = False
 
 def except_hook(cls, exception, traceback):
     sys.__excepthook__(cls, exception, traceback)
 
 
 class Widget(QMainWindow):
+    logger.info("---------- STARTED ----------")
     stop_signal = pyqtSignal()
     logout_signal = pyqtSignal()
 
-    with open("config.txt", "r") as f:
+    with open("config.json", "r") as f:
+        logger.info('Loading config file')
         output = json.loads(f.read())
         version = output['Version']
         date = datetime.datetime.strptime(output['Date'], '%Y-%m-%d')
@@ -34,6 +40,7 @@ class Widget(QMainWindow):
         password = output['Password']
         auto_send = output['Auto-send']
         zoom = int(output["Zoom"])
+        logger.info('Config file loaded')
 
     def __init__(self):
         super().__init__()
@@ -49,9 +56,10 @@ class Widget(QMainWindow):
         else:
             self.res = '1280x720'
             res_index = 1
-            with open("config.txt", 'w') as f:
+            with open("config.json", 'w') as f:
                 self.output['Resolution'] = self.res
                 json.dump(self.output, f)
+            logger.warning("Config file resolution invalid.")
 
         print("Zoom -5: aparenta ok\n"
               "Zoom -4: ok\n"
@@ -65,15 +73,21 @@ class Widget(QMainWindow):
         # Starting threads for startup verification
         self.loading_dialog = Loading()
 
+        if DEV:
+            wait_time = 100
+        else:
+            wait_time = random.randint(3550, 4500)
+
         self.auth_done = False
         self.update_check_done = False
         self.call_update_box = False
+        self.call_accnt_box = False
         self.startup_authorize_user()
         self.startup_update_check()
 
         self.loading_timer = QTimer()
         self.loading_timer.timeout.connect(self.loading)
-        self.loading_timer.start(3000)
+        self.loading_timer.start(wait_time)
 
 
         # Icons:
@@ -115,6 +129,8 @@ class Widget(QMainWindow):
 
 
     def initUI(self):
+        logger.info("Initializing UI")
+
         loadUi('designs\\MainWindow.ui', self)
 
         # Toolbar
@@ -141,17 +157,19 @@ class Widget(QMainWindow):
         website = self.menu.addAction('Github [ICON]')
         website.triggered.connect(lambda: webbrowser.open("https://www.github.com/Setti7/Stardew-Valley-Fishing-Bot"))
 
-        # self.menu.setFixedSize(self.width(), 25)
+        logger.info("UI Initialized")
 
     def loading(self):
 
         if self.auth_done and self.update_check_done:
-                self.loading_timer.stop()
-                self.loading_timer.deleteLater()
+            logger.info("Loading main aplication finished")
+            self.loading_timer.stop()
+            self.loading_timer.deleteLater()
 
-                self.call_update_box = True
-                self.loading_dialog.close()
-                self.show()
+            self.call_accnt_box = True
+            self.call_update_box = True
+            self.loading_dialog.close()
+            self.show()
 
     # Checking if auto_send checkbox is True/False
     def auto_send_state_changed(self):
@@ -162,31 +180,31 @@ class Widget(QMainWindow):
 
         self.auto_send = result
 
-        with open("config.txt", "r") as f:
+        with open("config.json", "r") as f:
             output = json.loads(f.read())
             output['Auto-send'] = result
 
-        with open("config.txt", "w") as f:
+        with open("config.json", "w") as f:
             json.dump(output, f)
 
     def zoom_value_changed(self):
         self.zoom = self.zoom_levelSpinBox.text()
 
-        with open ("config.txt", 'r') as f:
+        with open ("config.json", 'r') as f:
             output = json.loads(f.read())
             output["Zoom"] = self.zoom
 
-        with open("config.txt", "w") as f:
+        with open("config.json", "w") as f:
             json.dump(output, f)
 
     def res_selection_changed(self):
         self.res = self.res_selection.currentText()
 
-        with open ("config.txt", 'r') as f:
+        with open ("config.json", 'r') as f:
             output = json.loads(f.read())
             output["Resolution"] = self.res
 
-        with open("config.txt", "w") as f:
+        with open("config.json", "w") as f:
             json.dump(output, f)
 
 
@@ -206,6 +224,7 @@ class Widget(QMainWindow):
 
     # Startup Processes:
     def startup_update_check(self):
+        logger.info("Searching for updates")
         self.check_thread = QThread()
         self.checker = CheckForUpdates()
         self.checker.moveToThread(self.check_thread)
@@ -223,12 +242,13 @@ class Widget(QMainWindow):
 
         self.update_timer = QTimer()
         self.update_timer.timeout.connect(lambda: self.update_message_box(update_info))
-        self.update_timer.start(100)
+        self.update_timer.start(200)
 
         self.update_check_done = True
 
 
     def startup_authorize_user(self):
+        logger.info("Trying to login user")
 
         # Thread:
         self.login_thread = QThread()
@@ -313,12 +333,12 @@ class Widget(QMainWindow):
     # Notification of new version:
     def update_message_box(self, update_info):
 
-
         if self.call_update_box:
             self.update_timer.stop()
             self.update_timer.deleteLater()
 
             update = update_info['Update']
+            logger.info("Update available: %s" % update)
 
         else:
             update = False
@@ -328,6 +348,7 @@ class Widget(QMainWindow):
             new_version = update_info['New Version']
             changes = update_info['Changes']
             critical = update_info['Critical']
+            logger.info("Update critical: %s" % critical)
 
             if not critical:
                 updateBox = QMessageBox()
@@ -401,12 +422,15 @@ class Widget(QMainWindow):
             pass # fight me
 
         # Thread: __init__
+        logger.info("Creating data thread")
         self.thread = QThread()
 
         if hasattr(self, "session"):
             if self.session:
+                logger.info("Starting data with: {}, {}, {}, {}, {}".format(self.used_key, self.res, self.zoom, self.auto_send, self.session))
                 self.worker = SaveData(self.used_key, self.res, self.zoom, self.auto_send, session=self.session)
         else:
+            logger.info("Starting data with: {}, {}, {}, {}".format(self.used_key, self.res, self.zoom, False))
             self.worker = SaveData(self.used_key, self.res, self.zoom, autosend=False)
 
         self.stop_signal.connect(self.worker.stop)  # connect stop signal to worker stop method
@@ -428,6 +452,7 @@ class Widget(QMainWindow):
 
         self.thread.start()
 
+
     def data_stop_action(self):
         self.data_start.setEnabled(True)
         self.data_stop.setEnabled(False)
@@ -442,6 +467,7 @@ class Widget(QMainWindow):
             self.send_btn.setEnabled(True)
             self.auto_send_checkbox.setEnabled(True)
 
+        logger.info("Data stopped")
         self.stop_signal.emit()  # emit the finished signal on stop
 
         # Icon
@@ -455,6 +481,7 @@ class Widget(QMainWindow):
 
         if os.path.exists(self.score_file):
             score = sum(list(np.load(self.score_file)))
+            logger.info("Updating score")
             self.update_score(score)
 
     def send_data(self):
@@ -463,6 +490,7 @@ class Widget(QMainWindow):
         Every time the button is clicked, it is created a new thread, that is deleted after the upload.
         """
         try:
+            logger.info("Starting send data thread")
             self.send_data_thread = QThread()  # Thread criado
             self.send_data_worker = SendData(session=self.session)  # TODO: não está realmente em outro thread pq trava
             self.send_data_worker.moveToThread(self.send_data_thread)
@@ -476,19 +504,22 @@ class Widget(QMainWindow):
             self.send_data_thread.started.connect(self.send_data_worker.send_data)
 
             self.send_data_thread.start()
-            print('Send data thread started #070')
+            logger.info('Send data thread started')
+
 
         except Exception as e:
-            print(e)
-            print("Error send data thread #071")
+            logger.error("Could not start thread to send data: %s" % e)
+            QMessageBox.information(self, "Oops!", "Could not start thread to send data: %s" % e)
 
     def auto_send_response_code_controller(self, code):
         if code == 200:
+            logger.info("Data sent successfully")
             self.send_status_label.setText("Success! Thank you for helping!")
             self.send_status_label.setStyleSheet("color: #28a745;")
             self.send_btn.setText("Send Data")
 
         else:
+            logger.error("Error while sending data. Response code: %s" % code)
             self.send_status_label.setText('Error! Verify your connection')
             self.send_status_label.setStyleSheet("color: #dc3545;")
 
@@ -508,20 +539,23 @@ class Widget(QMainWindow):
                 frame_file = 'Data\\frames.npy'
 
                 if os.path.isfile(file_name):
-                    print("Training file exists, loading previos data!")
+                    logger.info("Loading training data file to delete last data")
                     training_data = list(np.load(file_name))
 
                 else:
-                    print("Training file does not exist, starting fresh!")
-                    training_data = []
+                    logger.warning("Training data file does not exist")
+                    training_data = np.empty(shape=[0, 1])
+                    logger.info("Training data file created")
+
 
                 if os.path.isfile(frame_file):
-                    print("Frames file exists, loading previos data!")
+                    logger.info("Loading frames file to delete last data")
                     frames = list(np.load(frame_file))
 
                 else:
-                    print("Frames file does not exist, starting fresh!")
-                    frames = []
+                    logger.warning("Frames file does not exist")
+                    frames = list(np.empty(shape=[0, 1]))
+                    logger.info("Frames file created")
 
                 before_score = sum(frames)
 
@@ -558,32 +592,30 @@ class Widget(QMainWindow):
                     self.score_worker.single_check_online_score()
 
             except Exception as e:
-                print(e)
-                QMessageBox.information(self, "Oops!", "Could not delete the Data")
-
+                logger.error("Could not delete data: %s" % e)
+                QMessageBox.information(self, "Oops!", "Could not delete data: %s" % e)
 
     # Account functions:
     def login_control(self, results):
-        print(results)
         self.auth_done = True
 
         if "Logged" in results.keys():
             if results['Logged']:
+                logger.info("User successfully logged in")
 
                 self.user_has_logged({"Username": results['Username'], "Password": results['Password'], "Session": results['Session']})
                 self.login_btn.setVisible(False)
                 self.logout_btn.setVisible(True)
 
             else:
-                print("accnt manager #982")
-                self.login_btn.setVisible(False)
-                self.logout_btn.setVisible(True)
-                self.accnt_manager = AccountManager()
-                self.accnt_manager.user_logged.connect(self.user_has_logged)
-                self.accnt_manager.rejected.connect(self.login_rejected)
-                self.accnt_manager.exec_()
+
+                self.accnt_timer = QTimer()
+                self.accnt_timer.timeout.connect(self.login_error)
+                self.accnt_timer.start(200)
 
         if "Offline" in results.keys():
+            logger.warning("Offline")
+
             self.logout_btn.setVisible(True)
             self.username_label.mousePressEvent = self.retry_connection
             self.username_label.setText(
@@ -600,6 +632,21 @@ class Widget(QMainWindow):
         # endregion
 
         self.menu_options.setEnabled(True)
+
+
+    def login_error(self):
+
+        if self.call_accnt_box:
+            logger.warning("Login error")
+            self.accnt_timer.stop()
+            self.accnt_timer.deleteLater()
+
+            self.login_btn.setVisible(False)
+            self.logout_btn.setVisible(True)
+            self.accnt_manager = AccountManager()
+            self.accnt_manager.user_logged.connect(self.user_has_logged)
+            self.accnt_manager.rejected.connect(self.login_rejected)
+            self.accnt_manager.exec_()
 
     def login_rejected(self):
 
@@ -642,16 +689,16 @@ class Widget(QMainWindow):
             self.score_worker.online_score.connect(lambda ol_score: self.update_score(self.score, online_score=ol_score))
 
             self.score_thread.start()
-            print('Score thread started #081')
+            logger.info("Score thread started")
             self.score_worker.single_check_online_score()
 
         except Exception as e:
-            print(e)
-            print("Error score thread #005")
-
+            logger.error("Could not start score thread: %s" % e)
+            QMessageBox.information(self, "Oops!", "Could not start score thread: %s" % e)
 
     def logout(self):
         self.logout_signal.emit()
+        logger.info("User logged out")
 
         self.username = ''
         self.password = ''
@@ -662,21 +709,24 @@ class Widget(QMainWindow):
         self.send_btn.setEnabled(False)
         self.auto_send_checkbox.setEnabled(False)
 
-        with open('config.txt', 'r') as f:
+        with open('config.json', 'r') as f:
             output = json.loads(f.read())
             output['Password'] = ''
             output['User'] = ''
 
-        with open('config.txt', 'w') as f:
+        with open('config.json', 'w') as f:
             json.dump(output, f)
 
         self.login_control({"Logged": False})
 
     def closeEvent(self, event):
-        print("The program is not closing properly!")
+        stop_time = datetime.datetime.now()
+        runtime = (stop_time-start_time).total_seconds()
+        logger.info('---------- CLOSED. Runtime: %ss ----------' % runtime)
         event.accept() #.ignore
 
 if __name__ == '__main__':
+    start_time = datetime.datetime.now()
     app = QApplication(sys.argv)
     gui = Widget()
     sys.exit(app.exec_())
