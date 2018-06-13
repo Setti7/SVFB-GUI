@@ -1,5 +1,9 @@
+import logging
+logger = logging.getLogger(__name__)
+logging.basicConfig(filename='log.log', level=logging.INFO, format='%(levelname)s (%(name)s):\t%(asctime)s \t %(message)s', datefmt='%d/%m/%Y %I:%M:%S')
+
 from PyQt5.QtCore import QObject, pyqtSignal
-import requests
+import requests, os
 
 BASE_URL = "http://127.0.0.1"
 
@@ -15,14 +19,20 @@ class SendData(QObject):
         upload_url = BASE_URL + "/ranking/"
 
         try:
-
             self.client.get(upload_url)
             file_csrftoken = self.client.cookies['csrftoken']  # get ranking page crsf token
             file_data = {'csrfmiddlewaretoken': file_csrftoken}
+            logger.info("Sending file")
 
             with open('Data\\training_data.npy', 'rb') as file:
                 response = self.client.post(upload_url, files={'file': file}, data=file_data)
-                print("File should be sent.")
+
+                logger.info("Response status code: %s" % response.status_code)
+
+                if response.status_code == 200:
+                    print("File should be sent.")
+                    # os.remove('Data\\training_data.npy')
+                    # logger.info("training_data.npy file removed")
 
                 if self.send_return:
                     return response.status_code

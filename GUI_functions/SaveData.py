@@ -168,7 +168,7 @@ class SaveData(QObject):
 
                     if self.autosend:
                         send = SendData(self.session, send_return=True)
-                        result = send.send_data()
+                        result = send.send_data() # TODO: site está recebendo varios arquivos agora, então tem que deixar o autosend sempre ligado e fazer com que, caso seja enviado com sucesso, apague o arquivo. Assim, o training_data do computador será apenas uma sessão de pescamento.
                         print("Result code: ", result)
                         self.data_response_code.emit(result)
 

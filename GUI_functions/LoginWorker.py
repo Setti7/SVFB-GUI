@@ -14,7 +14,7 @@ class LoginWorker(QObject):
     @pyqtSlot()
     def do_work(self):
 
-        max_retries = 2
+        max_retries = 1  #TODO: change all max_retries to 1
         login_url = BASE_URL + "/accounts/login/?next=/home/"
 
         try:
