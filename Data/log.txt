@@ -1053,3 +1053,428 @@ Median FPS: 29.97
 dTime: 3.503246s
 Frames: 105.0
 
+Method: np.vstack
+Median FPS: -775.1
+dTime: 3.446013s
+Frames: -2671.0
+
+Method: np.vstack
+Median FPS: -650.17
+dTime: 3.928204s
+Frames: -2554.0
+
+Method: np.vstack
+Median FPS: -505.77
+dTime: 4.767024s
+Frames: -2411.0
+
+Method: np.vstack
+Median FPS: 29.99
+dTime: 6.835493s
+Frames: 205.0
+
+Method: np.vstack
+Median FPS: 29.99
+dTime: 3.601123s
+Frames: 108.0
+
+Method: np.vstack
+Median FPS: 29.71
+dTime: 2.490368s
+Frames: 74.0
+
+Method: np.vstack
+Median FPS: 29.98
+dTime: 5.136874s
+Frames: 154.0
+
+Method: np.vstack
+Median FPS: 30.0
+dTime: 2.866368s
+Frames: 86.0
+
+Method: np.vstack
+Median FPS: 30.03
+dTime: 4.295643s
+Frames: 129.0
+
+Method: np.vstack
+Median FPS: 30.07
+dTime: 2.893704s
+Frames: 87.0
+
+Method: np.vstack
+Median FPS: 29.98
+dTime: 3.735567s
+Frames: 112.0
+
+Method: np.vstack
+Median FPS: 29.99
+dTime: 3.300779s
+Frames: 99.0
+
+Method: np.vstack
+Median FPS: 29.98
+dTime: 3.202377s
+Frames: 96.0
+
+Method: np.vstack
+Median FPS: 29.98
+dTime: 3.535246s
+Frames: 106.0
+
+Method: np.vstack
+Median FPS: 29.98
+dTime: 4.869153s
+Frames: 146.0
+
+Method: np.vstack
+Median FPS: 29.99
+dTime: 7.502373s
+Frames: 225.0
+
+Method: np.vstack
+Median FPS: -36.24
+dTime: 5.602238s
+Frames: -203.0
+
+Method: np.vstack
+Median FPS: -1.88
+dTime: 6.369533s
+Frames: -12.0
+
+Method: np.vstack
+Median FPS: 29.96
+dTime: 4.773392s
+Frames: 143.0
+
+Method: np.vstack
+Median FPS: 30.03
+dTime: 3.096464s
+Frames: 93.0
+
+Method: np.vstack
+Median FPS: 30.0
+dTime: 12.467286s
+Frames: 374.0
+
+Method: np.vstack
+Median FPS: 30.0
+dTime: 13.232692s
+Frames: 397.0
+
+Method: np.vstack
+Median FPS: 28.86
+dTime: 0.103949s
+Frames: 3.0
+
+Method: np.vstack
+Median FPS: 31.41
+dTime: 2.133157s
+Frames: 67.0
+
+Method: np.vstack
+Median FPS: 29.99
+dTime: 8.236316s
+Frames: 247.0
+
+Method: np.vstack
+Median FPS: 29.99
+dTime: 5.502614s
+Frames: 165.0
+
+Method: np.vstack
+Median FPS: 30.02
+dTime: 13.492951s
+Frames: 405.0
+
+Method: np.vstack
+Median FPS: 30.01
+dTime: 5.998876s
+Frames: 180.0
+
+Method: np.vstack
+Median FPS: 30.0
+dTime: 15.868257s
+Frames: 476.0
+
+Method: np.vstack
+Median FPS: -66.93
+dTime: 6.768499s
+Frames: -453.0
+
+Method: np.vstack
+Median FPS: 30.04
+dTime: 3.695189s
+Frames: 111.0
+
+Method: np.vstack
+Median FPS: 29.98
+dTime: 5.237011s
+Frames: 157.0
+
+Method: np.vstack
+Median FPS: 30.0
+dTime: 11.234139s
+Frames: 337.0
+
+Method: np.vstack
+Median FPS: 30.0
+dTime: 5.833999s
+Frames: 175.0
+
+Method: np.vstack
+Median FPS: 30.04
+dTime: 5.526152s
+Frames: 166.0
+
+Method: np.vstack
+Median FPS: 29.96
+dTime: 7.042408s
+Frames: 211.0
+
+Method: np.vstack
+Median FPS: 29.99
+dTime: 5.501546s
+Frames: 165.0
+
+Method: np.vstack
+Median FPS: 30.04
+dTime: 4.793204s
+Frames: 144.0
+
+Method: np.vstack
+Median FPS: 29.95
+dTime: 6.377297s
+Frames: 191.0
+
+Method: np.vstack
+Median FPS: 30.0
+dTime: 6.467156s
+Frames: 194.0
+
+Method: np.vstack
+Median FPS: 30.0
+dTime: 5.166709s
+Frames: 155.0
+
+Method: np.vstack
+Median FPS: 29.98
+dTime: 3.101897s
+Frames: 93.0
+
+Method: np.vstack
+Median FPS: 29.98
+dTime: 4.102078s
+Frames: 123.0
+
+Method: np.vstack
+Median FPS: 29.98
+dTime: 6.038327s
+Frames: 181.0
+
+Method: np.vstack
+Median FPS: 30.01
+dTime: 3.932658s
+Frames: 118.0
+
+Method: np.vstack
+Median FPS: 30.02
+dTime: 4.763753s
+Frames: 143.0
+
+Method: np.vstack
+Median FPS: 29.86
+dTime: 5.861432s
+Frames: 175.0
+
+Method: np.vstack
+Median FPS: 29.99
+dTime: 5.16797s
+Frames: 155.0
+
+Method: np.vstack
+Median FPS: 30.01
+dTime: 6.431873s
+Frames: 193.0
+
+Method: np.vstack
+Median FPS: 30.05
+dTime: 2.296374s
+Frames: 69.0
+
+Method: np.vstack
+Median FPS: 84.3
+dTime: 1.269281s
+Frames: 107.0
+
+Method: np.vstack
+Median FPS: 29.98
+dTime: 2.201153s
+Frames: 66.0
+
+Method: np.vstack
+Median FPS: 51.27
+dTime: 3.10095s
+Frames: 159.0
+
+Method: np.vstack
+Median FPS: 29.98
+dTime: 4.168788s
+Frames: 125.0
+
+Method: np.vstack
+Median FPS: 29.97
+dTime: 4.604622s
+Frames: 138.0
+
+Method: np.vstack
+Median FPS: 29.9
+dTime: 0.969842s
+Frames: 29.0
+
+Method: np.vstack
+Median FPS: 40.96
+dTime: 2.636639s
+Frames: 108.0
+
+Method: np.vstack
+Median FPS: 29.98
+dTime: 5.436173s
+Frames: 163.0
+
+Method: np.vstack
+Median FPS: 29.98
+dTime: 3.968889s
+Frames: 119.0
+
+Method: np.vstack
+Median FPS: 29.99
+dTime: 6.468779s
+Frames: 194.0
+
+Method: np.vstack
+Median FPS: 29.95
+dTime: 1.135181s
+Frames: 34.0
+
+Method: np.vstack
+Median FPS: 29.98
+dTime: 3.802704s
+Frames: 114.0
+
+Method: np.vstack
+Median FPS: 29.95
+dTime: 2.570812s
+Frames: 77.0
+
+Method: np.vstack
+Median FPS: 29.98
+dTime: 4.803136s
+Frames: 144.0
+
+Method: np.vstack
+Median FPS: 29.99
+dTime: 4.068578s
+Frames: 122.0
+
+Method: np.vstack
+Median FPS: 29.98
+dTime: 3.202056s
+Frames: 96.0
+
+Method: np.vstack
+Median FPS: 29.98
+dTime: 4.635967s
+Frames: 139.0
+
+Method: np.vstack
+Median FPS: 29.98
+dTime: 3.70278s
+Frames: 111.0
+
+Method: np.vstack
+Median FPS: 30.0
+dTime: 3.533688s
+Frames: 106.0
+
+Method: np.vstack
+Median FPS: 29.98
+dTime: 2.435028s
+Frames: 73.0
+
+Method: np.vstack
+Median FPS: 44.67
+dTime: 4.970315s
+Frames: 222.0
+
+Method: np.vstack
+Median FPS: 30.01
+dTime: 3.065989s
+Frames: 92.0
+
+Method: np.vstack
+Median FPS: 29.85
+dTime: 3.8193s
+Frames: 114.0
+
+Method: np.vstack
+Median FPS: 30.0
+dTime: 3.433316s
+Frames: 103.0
+
+Method: np.vstack
+Median FPS: 30.0
+dTime: 6.100512s
+Frames: 183.0
+
+Method: np.vstack
+Median FPS: 29.98
+dTime: 4.669149s
+Frames: 140.0
+
+Method: np.vstack
+Median FPS: 30.0
+dTime: 5.59968s
+Frames: 168.0
+
+Method: np.vstack
+Median FPS: 29.96
+dTime: 2.903402s
+Frames: 87.0
+
+Method: np.vstack
+Median FPS: 29.94
+dTime: 7.64943s
+Frames: 229.0
+
+Method: np.vstack
+Median FPS: 29.87
+dTime: 4.184272s
+Frames: 125.0
+
+Method: np.vstack
+Median FPS: 29.9
+dTime: 4.98378s
+Frames: 149.0
+
+Method: np.vstack
+Median FPS: 30.04
+dTime: 6.823687s
+Frames: 205.0
+
+Method: np.vstack
+Median FPS: 29.9
+dTime: 6.688243s
+Frames: 200.0
+
+Method: np.vstack
+Median FPS: 29.92
+dTime: 4.244238s
+Frames: 127.0
+
+Method: np.vstack
+Median FPS: 29.95
+dTime: 5.342495s
+Frames: 160.0
+

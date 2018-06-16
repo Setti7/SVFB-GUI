@@ -7,4 +7,4 @@ def clear(*args):
     for file in args:
         np.save(file, np.empty(shape=[0,2]))
 
-clear("frames.npy", 'training_data.npy')
+clear("frames.npy", 'training_data.npy', 'data.npy')

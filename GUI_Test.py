@@ -18,7 +18,7 @@ from GUI_functions.Loading import Loading
 from GUI_functions.CheckForUpdates import CheckForUpdates
 
 BASE_URL = 'http://127.0.0.1'
-DEV = False
+DEV = True
 
 def except_hook(cls, exception, traceback):
     sys.__excepthook__(cls, exception, traceback)
@@ -109,6 +109,8 @@ class Widget(QMainWindow):
         if os.path.exists(self.score_file):
             score = sum(list(np.load(self.score_file)))
             self.update_score(score)
+        else:
+            self.update_score(0)
 
         # If auto_send config is not checked, let it be unchecked
         if not self.auto_send:
@@ -312,12 +314,18 @@ class Widget(QMainWindow):
 
     def update_score(self, score, **kwargs):
         self.score = score
-        self.score_label.setText("Score: {}".format(int(score)))
+
+        if self.score != 0:
+            self.score_label.setText("Local Score: {}".format(int(score)))
 
         if 'online_score' in kwargs.keys():
             online_score = kwargs['online_score']
-            if kwargs['online_score'] != self.score:
-                self.send_btn.setText("Send Data ({} not sent yet)".format(int(self.score - online_score)))
+            if online_score != self.score:
+                if self.score != 0:
+                    self.score_label.setText("Online Score: {} ({})".format(online_score, int(score)))
+                else:
+                    self.score_label.setText("Online Score: {}".format(online_score,))
+
 
     def dog_go_idle(self):
         self.icons_label.setMovie(self.dog_idle)
@@ -492,10 +500,11 @@ class Widget(QMainWindow):
         try:
             logger.info("Starting send data thread")
             self.send_data_thread = QThread()  # Thread criado
-            self.send_data_worker = SendData(session=self.session)  # TODO: não está realmente em outro thread pq trava
+            self.send_data_worker = SendData(session=self.session)
             self.send_data_worker.moveToThread(self.send_data_thread)
 
             self.send_data_worker.status_code.connect(self.auto_send_response_code_controller)
+            self.send_data_worker.status_code.connect(self.score_worker.single_check_online_score)
 
             self.send_data_worker.status_code.connect(self.send_data_worker.deleteLater) # Finished then deletes thread and worker
             self.send_data_worker.status_code.connect(self.send_data_thread.quit)
@@ -513,13 +522,16 @@ class Widget(QMainWindow):
 
     def auto_send_response_code_controller(self, code):
         if code == 200:
-            logger.info("Data sent successfully")
             self.send_status_label.setText("Success! Thank you for helping!")
             self.send_status_label.setStyleSheet("color: #28a745;")
             self.send_btn.setText("Send Data")
+            self.score = 0
+
+        elif code == 404:
+            self.send_status_label.setText('Everything was already sent!')
+            self.send_status_label.setStyleSheet("color: #dc3545;")
 
         else:
-            logger.error("Error while sending data. Response code: %s" % code)
             self.send_status_label.setText('Error! Verify your connection')
             self.send_status_label.setStyleSheet("color: #dc3545;")
 
@@ -538,24 +550,11 @@ class Widget(QMainWindow):
                 file_name = 'Data\\training_data.npy'
                 frame_file = 'Data\\frames.npy'
 
-                if os.path.isfile(file_name):
-                    logger.info("Loading training data file to delete last data")
-                    training_data = list(np.load(file_name))
+                logger.info("Loading training data array for deletion")
+                training_data = list(np.load(file_name))
 
-                else:
-                    logger.warning("Training data file does not exist")
-                    training_data = np.empty(shape=[0, 1])
-                    logger.info("Training data file created")
-
-
-                if os.path.isfile(frame_file):
-                    logger.info("Loading frames file to delete last data")
-                    frames = list(np.load(frame_file))
-
-                else:
-                    logger.warning("Frames file does not exist")
-                    frames = list(np.empty(shape=[0, 1]))
-                    logger.info("Frames file created")
+                logger.info("Loading frames array")
+                frames = list(np.load(frame_file))
 
                 before_score = sum(frames)
 

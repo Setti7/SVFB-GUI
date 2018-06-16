@@ -168,9 +168,15 @@ class SaveData(QObject):
 
                     if self.autosend:
                         send = SendData(self.session, send_return=True)
-                        result = send.send_data() # TODO: site está recebendo varios arquivos agora, então tem que deixar o autosend sempre ligado e fazer com que, caso seja enviado com sucesso, apague o arquivo. Assim, o training_data do computador será apenas uma sessão de pescamento.
+                        result = send.send_data()
                         print("Result code: ", result)
                         self.data_response_code.emit(result)
+
+                        if result == 200:
+                            logger.info("Erasing files from memory and starting over")
+                            training_data = np.empty(shape=[0, 2])
+                            frames = np.empty(shape=[0, 1])
+                            logger.info("Files erased from memory.")
 
                     self.score.emit(sum(frames))
 
