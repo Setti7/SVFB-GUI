@@ -1,3 +1,7 @@
+import logging
+logger = logging.getLogger(__name__)
+logging.basicConfig(filename='log.log', level=logging.INFO, format='%(levelname)s (%(name)s):\t%(asctime)s \t %(message)s', datefmt='%d/%m/%Y %I:%M:%S')
+
 import requests
 from PyQt5.QtCore import QThread, QObject, pyqtSignal, pyqtSlot
 
@@ -18,6 +22,7 @@ class LoginWorker(QObject):
         login_url = BASE_URL + "/accounts/login/?next=/home/"
 
         try:
+            logger.info("Logging user")
             client = requests.Session()
             adapter = requests.adapters.HTTPAdapter(max_retries=max_retries)
             client.mount('http://', adapter)  # client.mount('https://', adapter)

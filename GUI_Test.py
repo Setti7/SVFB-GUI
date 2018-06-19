@@ -657,7 +657,7 @@ class Widget(QMainWindow):
     #     self.update_score(self.score, online_score=online_score)
 
     def user_has_logged(self, user_info):
-        print("User has logged #008")
+        logger.info("User logged")
         self.username = user_info['Username']
         self.password = user_info['Password']
         self.session = user_info['Session']

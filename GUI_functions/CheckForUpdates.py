@@ -1,3 +1,7 @@
+import logging
+logger = logging.getLogger(__name__)
+logging.basicConfig(filename='log.log', level=logging.INFO, format='%(levelname)s (%(name)s):\t%(asctime)s \t %(message)s', datefmt='%d/%m/%Y %I:%M:%S')
+
 import json, datetime
 from urllib.request import urlopen
 from urllib.error import URLError
@@ -20,7 +24,8 @@ class CheckForUpdates(QObject):
     @pyqtSlot()
     def do_work(self):
         try:
-            data = urlopen(BASE_URL + "/version-control").read()
+            logger.info("Checking updates")
+            data = urlopen(BASE_URL + "/home?version-control").read()
             output = json.loads(data)
 
             changes = []
@@ -48,9 +53,11 @@ class CheckForUpdates(QObject):
                         "Changes": changes,
                         "Critical": critical
                      })
+                logger.info("Update found")
             else:
                 self.update_text.emit({"Update": False})
+                logger.info("No updates available")
 
         except URLError:
             self.update_text.emit({"Update": False})
-            print("Update timeout")
+            logger.warning("Offline, could not check updates")
