@@ -2,9 +2,11 @@ import logging
 logger = logging.getLogger(__name__)
 logging.basicConfig(filename='log.log', level=logging.INFO, format='%(levelname)s (%(name)s):\t%(asctime)s \t %(message)s', datefmt='%d/%m/%Y %I:%M:%S')
 
+#TODO: criar conta não envia automaticamente. Parece que não tem um sessão ativa online pra enviar
+
 import json, datetime, random
 import sys, numpy as np, os, webbrowser
-from PyQt5.QtWidgets import QWidget, QMainWindow, QApplication, QMessageBox, QDialog, QMenuBar
+from PyQt5.QtWidgets import QWidget, QMainWindow, QApplication, QMessageBox, QDialog, QMenuBar, QRubberBand
 from PyQt5.QtCore import QThread, QObject, pyqtSignal, pyqtSlot, QTimer, Qt
 from PyQt5 import QtGui
 from PyQt5.uic import loadUi
@@ -38,7 +40,6 @@ class Widget(QMainWindow):
         res = output["Resolution"]
         username = output['User']
         password = output['Password']
-        auto_send = output['Auto-send']
         zoom = int(output["Zoom"])
         logger.info('Config file loaded')
 
@@ -112,10 +113,6 @@ class Widget(QMainWindow):
         else:
             self.update_score(0)
 
-        # If auto_send config is not checked, let it be unchecked
-        if not self.auto_send:
-            self.auto_send_checkbox.setChecked(False)
-
         # Configuring Signals:
         self.dialog = ChangeKey()
         self.dialog.new_key.connect(self.update_key)
@@ -125,7 +122,6 @@ class Widget(QMainWindow):
         self.data_stop.clicked.connect(self.data_stop_action)
         self.send_btn.clicked.connect(self.send_data)
         self.change_key_btn.clicked.connect(self.dialog.exec_)
-        self.auto_send_checkbox.stateChanged.connect(self.auto_send_state_changed)
         self.zoom_levelSpinBox.valueChanged.connect(self.zoom_value_changed)
         self.res_selection.currentIndexChanged.connect(self.res_selection_changed)
 
@@ -143,20 +139,18 @@ class Widget(QMainWindow):
         self.send_message_btn.clicked.connect(self.send_message)
 
         # Menu
-        self.menu_options.setEnabled(False)
-
-        self.delete_last_data_btn.triggered.connect(self.delete_last_data)
-
+        self.logout_btn = self.menu.addAction('Logout')
         self.logout_btn.triggered.connect(self.logout)
         self.logout_btn.setVisible(False)
 
+        self.login_btn = self.menu.addAction('Login')
         self.login_btn.triggered.connect(lambda: self.login_control({'Logged': False}))
         self.login_btn.setVisible(False)
 
         visit_ranking = self.menu.addAction('Ranking')
         visit_ranking.triggered.connect(lambda: webbrowser.open(BASE_URL + "/ranking"))
 
-        website = self.menu.addAction('Github [ICON]')
+        website = self.menu.addAction('GitHub')
         website.triggered.connect(lambda: webbrowser.open("https://www.github.com/Setti7/Stardew-Valley-Fishing-Bot"))
 
         logger.info("UI Initialized")
@@ -173,21 +167,6 @@ class Widget(QMainWindow):
             self.loading_dialog.close()
             self.show()
 
-    # Checking if auto_send checkbox is True/False
-    def auto_send_state_changed(self):
-        if self.auto_send_checkbox.isChecked():
-            result = True
-        else:
-            result = False
-
-        self.auto_send = result
-
-        with open("config.json", "r") as f:
-            output = json.loads(f.read())
-            output['Auto-send'] = result
-
-        with open("config.json", "w") as f:
-            json.dump(output, f)
 
     def zoom_value_changed(self):
         self.zoom = self.zoom_levelSpinBox.text()
@@ -212,17 +191,57 @@ class Widget(QMainWindow):
 
     # Send message
     def send_message(self):
-        txt = self.message_text.toPlainText()
-        self.message_text.clear()
+        msg = self.message_text.toPlainText()
 
-        if self.contact_me.isChecked():
-            email = self.contact_email.text()
-            # send message with email and user
+        if len(msg) > 240:
+
+            self.message_status_label.clear()
+            self.message_status_label.setStyleSheet("color: #dc3545;")
+
+            self.timer_msg0 = QTimer()
+            self.timer_msg0.timeout.connect(lambda: self.message_status_label.setText("Your message is to big!\nThe maximum is 240 chars."))
+            self.timer_msg0.timeout.connect(self.timer_msg0.stop)
+            self.timer_msg0.timeout.connect(self.timer_msg0.deleteLater)
+            self.timer_msg0.start(200)
 
         else:
-            print("{}".format(txt))
-            # send only message with user
 
+            user = self.username
+            self.message_text.clear()
+
+            if self.contact_me.isChecked():
+                contact = self.contact_email.text()
+            else:
+                contact = False
+
+            upload_url = BASE_URL + "/api/bug-report"
+
+            try:
+                self.session.get(upload_url)
+                csrftoken = self.session.cookies['csrftoken']  # get ranking page crsf token
+                data = {'csrfmiddlewaretoken': csrftoken, 'msg': msg, 'user': user, 'contact': contact}
+
+                response = self.session.post(upload_url, data=data)
+                result = json.loads(response.text)
+
+                print(result)
+                if result['success']:
+                    self.message_status_label.setText("Message successfully sent!")
+                    self.message_status_label.setStyleSheet("color: #28a745;")
+
+                else:
+                    self.message_status_label.setText("There was an error while sending!")
+                    self.message_status_label.setStyleSheet("color: #dc3545;")
+
+                self.timer_msg = QTimer()
+                self.timer_msg.timeout.connect(self.message_status_label.clear)
+                self.timer_msg.timeout.connect(self.timer_msg.stop)
+                self.timer_msg.timeout.connect(self.timer_msg.deleteLater)
+                self.timer_msg.start(5000)
+
+            except Exception as e:
+                print(e)
+                logger.error(e)
 
     # Startup Processes:
     def startup_update_check(self):
@@ -318,11 +337,15 @@ class Widget(QMainWindow):
         if self.score != 0:
             self.score_label.setText("Local Score: {}".format(int(score)))
 
+        if 'forced' in kwargs.keys():
+            self.score_label.setText("Local Score: {}".format(int(score)))
+
         if 'online_score' in kwargs.keys():
             online_score = kwargs['online_score']
             if online_score != self.score:
                 if self.score != 0:
                     self.score_label.setText("Online Score: {} ({})".format(online_score, int(score)))
+                    self.send_data()
                 else:
                     self.score_label.setText("Online Score: {}".format(online_score,))
 
@@ -412,10 +435,8 @@ class Widget(QMainWindow):
         self.zoom_levelSpinBox.setEnabled(False)
         self.change_key_btn.setEnabled(False)
         self.send_btn.setEnabled(False)
-        self.auto_send_checkbox.setEnabled(False)
         self.logout_btn.setEnabled(False)
         self.login_btn.setEnabled(False)
-        self.delete_last_data_btn.setEnabled(False)
 
         # Icon
         self.icons_label.setMovie(self.dog_getting_up)
@@ -435,11 +456,11 @@ class Widget(QMainWindow):
 
         if hasattr(self, "session"):
             if self.session:
-                logger.info("Starting data with: {}, {}, {}, {}, {}".format(self.used_key, self.res, self.zoom, self.auto_send, self.session))
-                self.worker = SaveData(self.used_key, self.res, self.zoom, self.auto_send, session=self.session)
+                logger.info("Starting data with: {}, {}, {}, {}".format(self.used_key, self.res, self.zoom, self.session))
+                self.worker = SaveData(self.used_key, self.res, self.zoom, session=self.session)
         else:
-            logger.info("Starting data with: {}, {}, {}, {}".format(self.used_key, self.res, self.zoom, False))
-            self.worker = SaveData(self.used_key, self.res, self.zoom, autosend=False)
+            logger.info("Starting data with: {}, {}, {}".format(self.used_key, self.res, self.zoom))
+            self.worker = SaveData(self.used_key, self.res, self.zoom)
 
         self.stop_signal.connect(self.worker.stop)  # connect stop signal to worker stop method
         self.worker.moveToThread(self.thread)
@@ -469,11 +490,9 @@ class Widget(QMainWindow):
         self.change_key_btn.setEnabled(True)
         self.logout_btn.setEnabled(True)
         self.login_btn.setEnabled(True)
-        self.delete_last_data_btn.setEnabled(True)
 
         if self.send_btn.text() != "Can't send data while offline":
             self.send_btn.setEnabled(True)
-            self.auto_send_checkbox.setEnabled(True)
 
         logger.info("Data stopped")
         self.stop_signal.emit()  # emit the finished signal on stop
@@ -497,6 +516,8 @@ class Widget(QMainWindow):
         Creates thread to send data and don't stop the execution of the program while it is uploading.
         Every time the button is clicked, it is created a new thread, that is deleted after the upload.
         """
+
+        self.send_btn.setEnabled(False)
         try:
             logger.info("Starting send data thread")
             self.send_data_thread = QThread()  # Thread criado
@@ -527,7 +548,7 @@ class Widget(QMainWindow):
             self.send_btn.setText("Send Data")
             self.score = 0
 
-        elif code == 404:
+        elif code == -1:
             self.send_status_label.setText('Everything was already sent!')
             self.send_status_label.setStyleSheet("color: #dc3545;")
 
@@ -539,60 +560,7 @@ class Widget(QMainWindow):
         self.timer.timeout.connect(self.send_status_label.clear)
         self.timer.start(5000)
 
-    def delete_last_data(self):
-
-        choice = QMessageBox.question(self, "Warning!", "Are you sure you want to delete the data from your last fishing session?", QMessageBox.Yes | QMessageBox.No)
-
-        if choice == QMessageBox.Yes:
-
-            try:
-
-                file_name = 'Data\\training_data.npy'
-                frame_file = 'Data\\frames.npy'
-
-                logger.info("Loading training data array for deletion")
-                training_data = list(np.load(file_name))
-
-                logger.info("Loading frames array")
-                frames = list(np.load(frame_file))
-
-                before_score = sum(frames)
-
-                # print("len frames {}".format(len(frames)))
-                # print("frames {}".format(frames))
-                # print("len training_data: {}".format(len(training_data)))
-                # print("this: {}".format(int(-frames[-1])))
-
-                del training_data[int(-frames[-1]):] # TODO: acho que poderia ser 'del training_data[frames[0]:]'
-                del frames[-1]
-
-                np.save(file_name, training_data)
-                np.save(frame_file, frames)
-
-                after_score = sum(frames)
-
-                string = 'Last data was removed successfully!\n\nScore before deletion:\t' + str(int(before_score)) + '\nYour score now:\t\t' + str(int(after_score))
-                print(string)
-                QMessageBox.information(self, "Success", string)
-
-                self.update_score(after_score)
-                if self.auto_send and self.username:
-                    self.send_data()
-
-                elif not self.auto_send and self.username:
-                    self.send_status_label.setStyleSheet('')
-                    self.send_status_label.setText("Don't forget to upload your data!")
-
-                    self.timer = QTimer()
-                    self.timer.timeout.connect(self.send_status_label.clear)
-                    self.timer.start(5000)
-
-                if hasattr(self, 'score_worker'):
-                    self.score_worker.single_check_online_score()
-
-            except Exception as e:
-                logger.error("Could not delete data: %s" % e)
-                QMessageBox.information(self, "Oops!", "Could not delete data: %s" % e)
+        self.send_btn.setEnabled(True)
 
     # Account functions:
     def login_control(self, results):
@@ -630,8 +598,6 @@ class Widget(QMainWindow):
             self.data_start.setText("Start collecting")
         # endregion
 
-        self.menu_options.setEnabled(True)
-
 
     def login_error(self):
 
@@ -652,9 +618,7 @@ class Widget(QMainWindow):
         self.username_label.setText("Not logged")
         self.logout_btn.setVisible(False)
         self.login_btn.setVisible(True)
-
-    # def call_update_score(self, online_score):
-    #     self.update_score(self.score, online_score=online_score)
+        self.update_score(0, forced=0)
 
     def user_has_logged(self, user_info):
         logger.info("User logged")
@@ -672,7 +636,6 @@ class Widget(QMainWindow):
 
         except:
             self.send_btn.setEnabled(True)
-            self.auto_send_checkbox.setEnabled(True)
 
         # Score Thread initialization
         try:
@@ -706,7 +669,8 @@ class Widget(QMainWindow):
         self.username_label.setText("Not logged")
         self.send_btn.setText("Can't send data while offline")
         self.send_btn.setEnabled(False)
-        self.auto_send_checkbox.setEnabled(False)
+        self.send_message_btn.setEnabled(False)
+
 
         with open('config.json', 'r') as f:
             output = json.loads(f.read())
@@ -716,7 +680,9 @@ class Widget(QMainWindow):
         with open('config.json', 'w') as f:
             json.dump(output, f)
 
+        self.update_score(0, forced=0)
         self.login_control({"Logged": False})
+
 
     def closeEvent(self, event):
         stop_time = datetime.datetime.now()

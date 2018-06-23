@@ -7,19 +7,19 @@
     <x>0</x>
     <y>0</y>
     <width>333</width>
-    <height>513</height>
+    <height>493</height>
    </rect>
   </property>
   <property name="minimumSize">
    <size>
     <width>333</width>
-    <height>513</height>
+    <height>493</height>
    </size>
   </property>
   <property name="maximumSize">
    <size>
-    <width>333</width>
-    <height>513</height>
+    <width>356</width>
+    <height>493</height>
    </size>
   </property>
   <property name="windowTitle">
@@ -36,145 +36,8 @@
     <item row="0" column="0">
      <widget class="QTabWidget" name="tabWidget_2">
       <property name="currentIndex">
-       <number>1</number>
+       <number>0</number>
       </property>
-      <widget class="QWidget" name="bot">
-       <attribute name="title">
-        <string>Bot</string>
-       </attribute>
-       <layout class="QGridLayout" name="gridLayout_3">
-        <item row="2" column="0">
-         <layout class="QVBoxLayout" name="verticalLayout">
-          <item>
-           <widget class="QLabel" name="label">
-            <property name="font">
-             <font>
-              <pointsize>14</pointsize>
-              <weight>50</weight>
-              <bold>false</bold>
-             </font>
-            </property>
-            <property name="frameShape">
-             <enum>QFrame::NoFrame</enum>
-            </property>
-            <property name="text">
-             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Sorry, not even started yet!&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-            </property>
-            <property name="alignment">
-             <set>Qt::AlignCenter</set>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="Line" name="line_2">
-            <property name="orientation">
-             <enum>Qt::Horizontal</enum>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <spacer name="verticalSpacer">
-            <property name="orientation">
-             <enum>Qt::Vertical</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>269</width>
-              <height>68</height>
-             </size>
-            </property>
-           </spacer>
-          </item>
-          <item>
-           <widget class="QLabel" name="label_3">
-            <property name="lineWidth">
-             <number>1</number>
-            </property>
-            <property name="text">
-             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Send me a custom message to hurry up or use it&lt;br/&gt;to report bugs if you are cool. You can also curse&lt;br/&gt;your neighbors here. (max 240 words)&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-            </property>
-            <property name="scaledContents">
-             <bool>false</bool>
-            </property>
-            <property name="indent">
-             <number>0</number>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <spacer name="verticalSpacer_3">
-            <property name="orientation">
-             <enum>Qt::Vertical</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>20</width>
-              <height>40</height>
-             </size>
-            </property>
-           </spacer>
-          </item>
-          <item>
-           <widget class="QTextEdit" name="message_text">
-            <property name="statusTip">
-             <string>Do whatever you want ¯\_(ツ)_/¯</string>
-            </property>
-            <property name="placeholderText">
-             <string>Write here...</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <layout class="QHBoxLayout" name="horizontalLayout_5">
-            <item>
-             <widget class="QCheckBox" name="contact_me">
-              <property name="statusTip">
-               <string>I used signals from QDesigner</string>
-              </property>
-              <property name="text">
-               <string>Contact me</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QLineEdit" name="contact_email">
-              <property name="statusTip">
-               <string>This should only appear when checked</string>
-              </property>
-              <property name="placeholderText">
-               <string>contact email</string>
-              </property>
-              <property name="clearButtonEnabled">
-               <bool>false</bool>
-              </property>
-             </widget>
-            </item>
-           </layout>
-          </item>
-          <item>
-           <widget class="QPushButton" name="send_message_btn">
-            <property name="enabled">
-             <bool>false</bool>
-            </property>
-            <property name="minimumSize">
-             <size>
-              <width>0</width>
-              <height>50</height>
-             </size>
-            </property>
-            <property name="statusTip">
-             <string>You don't know if this even works</string>
-            </property>
-            <property name="text">
-             <string>Send message that will be redirected to your
-parents (offline)</string>
-            </property>
-           </widget>
-          </item>
-         </layout>
-        </item>
-       </layout>
-      </widget>
       <widget class="QWidget" name="data_collecting">
        <attribute name="title">
         <string>Data Collecting</string>
@@ -182,16 +45,7 @@ parents (offline)</string>
        <layout class="QGridLayout" name="gridLayout_2">
         <item row="0" column="0">
          <layout class="QVBoxLayout" name="verticalLayout_2">
-          <property name="leftMargin">
-           <number>0</number>
-          </property>
-          <property name="topMargin">
-           <number>0</number>
-          </property>
-          <property name="rightMargin">
-           <number>0</number>
-          </property>
-          <property name="bottomMargin">
+          <property name="margin">
            <number>0</number>
           </property>
           <item>
@@ -363,25 +217,6 @@ parents (offline)</string>
            </widget>
           </item>
           <item>
-           <widget class="QCheckBox" name="auto_send_checkbox">
-            <property name="enabled">
-             <bool>false</bool>
-            </property>
-            <property name="acceptDrops">
-             <bool>false</bool>
-            </property>
-            <property name="text">
-             <string>Automaticly send data when finished</string>
-            </property>
-            <property name="checkable">
-             <bool>true</bool>
-            </property>
-            <property name="checked">
-             <bool>true</bool>
-            </property>
-           </widget>
-          </item>
-          <item>
            <layout class="QHBoxLayout" name="horizontalLayout_2">
             <item>
              <widget class="QLabel" name="used_key_label">
@@ -392,9 +227,6 @@ parents (offline)</string>
             </item>
             <item>
              <widget class="QPushButton" name="change_key_btn">
-              <property name="statusTip">
-               <string>Change the key you use to fish</string>
-              </property>
               <property name="text">
                <string>Change</string>
               </property>
@@ -413,9 +245,6 @@ parents (offline)</string>
             </item>
             <item>
              <widget class="QComboBox" name="res_selection">
-              <property name="statusTip">
-               <string>Set this to your game resolution</string>
-              </property>
               <property name="currentIndex">
                <number>0</number>
               </property>
@@ -459,6 +288,29 @@ parents (offline)</string>
            </layout>
           </item>
           <item>
+           <widget class="Line" name="line_4">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLabel" name="label_4">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="text">
+             <string>Set this as the zoom level you have in-game:</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item>
            <layout class="QFormLayout" name="formLayout">
             <property name="fieldGrowthPolicy">
              <enum>QFormLayout::AllNonFixedFieldsGrow</enum>
@@ -472,9 +324,6 @@ parents (offline)</string>
             </item>
             <item row="0" column="1">
              <widget class="QSpinBox" name="zoom_levelSpinBox">
-              <property name="statusTip">
-               <string>Set this as the zoom level you have in-game</string>
-              </property>
               <property name="minimum">
                <number>-5</number>
               </property>
@@ -484,6 +333,137 @@ parents (offline)</string>
              </widget>
             </item>
            </layout>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="bug_report">
+       <attribute name="title">
+        <string>Bug Report</string>
+       </attribute>
+       <layout class="QGridLayout" name="gridLayout_3">
+        <item row="2" column="0">
+         <layout class="QVBoxLayout" name="verticalLayout">
+          <item>
+           <widget class="QLabel" name="label">
+            <property name="font">
+             <font>
+              <pointsize>14</pointsize>
+              <weight>50</weight>
+              <bold>false</bold>
+             </font>
+            </property>
+            <property name="frameShape">
+             <enum>QFrame::NoFrame</enum>
+            </property>
+            <property name="text">
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;I'm working on it!&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="Line" name="line_2">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLabel" name="message_status_label">
+            <property name="minimumSize">
+             <size>
+              <width>0</width>
+              <height>30</height>
+             </size>
+            </property>
+            <property name="text">
+             <string/>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLabel" name="label_3">
+            <property name="lineWidth">
+             <number>1</number>
+            </property>
+            <property name="text">
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Send me a custom message to hurry up or use it &lt;br/&gt;to report bugs if you are cool (don't forget to enter&lt;br/&gt;your email in this case). You can also curse your&lt;br/&gt;neighbors here. (max 240 chars).&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+            </property>
+            <property name="scaledContents">
+             <bool>false</bool>
+            </property>
+            <property name="indent">
+             <number>0</number>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="verticalSpacer_3">
+            <property name="orientation">
+             <enum>Qt::Vertical</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>20</width>
+              <height>40</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item>
+           <widget class="QTextEdit" name="message_text">
+            <property name="placeholderText" stdset="0">
+             <string>Write here...</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_5">
+            <item>
+             <widget class="QCheckBox" name="contact_me">
+              <property name="text">
+               <string>Contact email</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLineEdit" name="contact_email">
+              <property name="inputMethodHints">
+               <set>Qt::ImhEmailCharactersOnly</set>
+              </property>
+              <property name="placeholderText">
+               <string>contact email</string>
+              </property>
+              <property name="clearButtonEnabled" stdset="0">
+               <bool>false</bool>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <widget class="QPushButton" name="send_message_btn">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
+            <property name="minimumSize">
+             <size>
+              <width>0</width>
+              <height>50</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>Send message that will be redirected to your
+parents (offline)</string>
+            </property>
+           </widget>
           </item>
          </layout>
         </item>
@@ -502,21 +482,10 @@ parents (offline)</string>
      <height>26</height>
     </rect>
    </property>
-   <widget class="QMenu" name="menu_options">
-    <property name="title">
-     <string>Options</string>
-    </property>
-    <addaction name="delete_last_data_btn"/>
-    <addaction name="separator"/>
-    <addaction name="login_btn"/>
-    <addaction name="logout_btn"/>
-   </widget>
-   <addaction name="menu_options"/>
   </widget>
-  <widget class="QStatusBar" name="statusbar"/>
-  <action name="actionLogin">
+  <action name="actionDelete_last_data">
    <property name="text">
-    <string>Login</string>
+    <string>Delete last data</string>
    </property>
   </action>
   <action name="actionLogout">
@@ -524,9 +493,9 @@ parents (offline)</string>
     <string>Logout</string>
    </property>
   </action>
-  <action name="actionDelete_last_data">
+  <action name="actionLogin">
    <property name="text">
-    <string>Delete last data</string>
+    <string>Login</string>
    </property>
   </action>
   <action name="delete_last_data_btn">

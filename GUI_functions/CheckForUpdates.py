@@ -25,7 +25,7 @@ class CheckForUpdates(QObject):
     def do_work(self):
         try:
             logger.info("Checking updates")
-            data = urlopen(BASE_URL + "/home?version-control").read()
+            data = urlopen(BASE_URL + "/api/version-control").read()
             output = json.loads(data)
 
             changes = []

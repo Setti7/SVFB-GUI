@@ -59,7 +59,7 @@ class QuickCheck(QObject):
 
     @pyqtSlot()
     def single_check_online_score(self):
-        score_url = BASE_URL + '/home?score'
+        score_url = BASE_URL + '/api/score'
 
         try:
             logger.info("Checking online score")

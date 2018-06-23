@@ -1,3 +1,5 @@
+#TODO: add logging to this
+
 import json, requests
 from PyQt5.QtWidgets import QDialog
 from PyQt5.QtCore import pyqtSignal
@@ -25,6 +27,7 @@ class AccountManager(QDialog):
         self.login_btn.clicked.connect(self.login)
         self.create_account_btn.clicked.connect(self.create_account)
         self.login_error.hide()
+        self.login_error.setStyleSheet("color: #dc3545;")
         self.create_account_error.hide()
         self.create_account_frame.hide()
         self.resize(287, 160)
@@ -47,7 +50,7 @@ class AccountManager(QDialog):
             self.clicked_first = False
 
     def create_account_online(self):
-        create_account_url = BASE_URL + "/accounts/create/?next=/home/"
+        create_account_url = BASE_URL + "/api/create-account"
 
         username = self.create_username.text()
         password1 = self.create_password.text()
@@ -62,9 +65,10 @@ class AccountManager(QDialog):
                           'csrfmiddlewaretoken': csrftoken}
 
             response = self.client.post(create_account_url, data=login_data)
-            success_text = "Logout from {}".format(username)
+            result = json.loads(response.text)
 
-            if success_text in str(response.content):
+            print(result)
+            if result['success']:
 
                 with open("config.json", "r") as f:
                     output = json.loads(f.read())
@@ -89,7 +93,7 @@ class AccountManager(QDialog):
             print("Error accnt creation #010")
 
     def login(self):
-        login_url = BASE_URL + "/accounts/login/?next=/home/"
+        login_url = BASE_URL + "/api/login"
 
         username = self.usernameLineEdit.text()
         password = self.passwordLineEdit.text()
@@ -101,11 +105,10 @@ class AccountManager(QDialog):
             login_data = {'username': username, 'password': password, 'csrfmiddlewaretoken': csrftoken}
 
             response = self.client.post(login_url, data=login_data)
-            success_text = "Logout from {}".format(username)
+            result = json.loads(response.text)
 
-            print("{} #721".format(response))
-
-            if success_text in str(response.content):
+            print(result)
+            if result['success']:
 
                 with open("config.json", "r") as f:
                     output = json.loads(f.read())
@@ -121,7 +124,7 @@ class AccountManager(QDialog):
 
             else:
 
-                print(self.width(), self.height())
+                # print(self.width(), self.height())
 
                 if not self.login_resized:
                     width = self.width()

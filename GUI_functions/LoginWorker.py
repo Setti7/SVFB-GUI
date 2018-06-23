@@ -2,7 +2,7 @@ import logging
 logger = logging.getLogger(__name__)
 logging.basicConfig(filename='log.log', level=logging.INFO, format='%(levelname)s (%(name)s):\t%(asctime)s \t %(message)s', datefmt='%d/%m/%Y %I:%M:%S')
 
-import requests
+import requests, json
 from PyQt5.QtCore import QThread, QObject, pyqtSignal, pyqtSlot
 
 BASE_URL = "http://127.0.0.1"
@@ -19,7 +19,7 @@ class LoginWorker(QObject):
     def do_work(self):
 
         max_retries = 1  #TODO: change all max_retries to 1
-        login_url = BASE_URL + "/accounts/login/?next=/home/"
+        login_url = BASE_URL + "/api/login"
 
         try:
             logger.info("Logging user")
@@ -32,9 +32,10 @@ class LoginWorker(QObject):
             login_data = {'username': self.username, 'password': self.password, 'csrfmiddlewaretoken': csrftoken}
 
             response = client.post(login_url, data=login_data)
-            success_text = "Logout from {}".format(self.username)
+            result = json.loads(response.content)
 
-            if success_text in str(response.content):
+            print(result)
+            if result['success']:
                 self.result.emit({"Logged": True, "Username": self.username, "Password": self.password, "Session": client})
 
             else:

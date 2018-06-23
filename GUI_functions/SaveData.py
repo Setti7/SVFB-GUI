@@ -52,14 +52,13 @@ class SaveData(QObject):
     score = pyqtSignal(int)
     data_response_code = pyqtSignal(int)
 
-    def __init__(self, key, res, zoom, autosend, session=None, parent=None):
+    def __init__(self, key, res, zoom, session=None, parent=None):
         QObject.__init__(self, parent=parent)
         self.res = [int(x_or_y) for x_or_y in res.split('x')]
         self.zoom = zoom
-        self.autosend = autosend
         self.key = key
 
-        if self.autosend:
+        if session:
             self.session = session
 
         self.run = True
@@ -166,7 +165,7 @@ class SaveData(QObject):
                     print("Saving...")
                     np.save(file_name, training_data)
 
-                    if self.autosend:
+                    if hasattr(self, 'session'):
                         send = SendData(self.session, send_return=True)
                         result = send.send_data()
                         print("Result code: ", result)
