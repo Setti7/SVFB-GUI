@@ -6,10 +6,10 @@ logging.basicConfig(filename='log.log', level=logging.INFO, format='%(levelname)
 import numpy as np
 import cv2, datetime
 from PyQt5.QtCore import QObject, pyqtSignal
-from GUI_functions.getkeys import key_check
+from SVFBFuncs.getkeys import key_check
 import os
-from GUI_functions import grabscreen
-from GUI_functions.SendFiles import SendData
+from SVFBFuncs import grabscreen
+from SVFBFuncs.SendFiles import SendData
 
 
 x = 105  # If I need to translate the areas of interest easily and equally
@@ -202,8 +202,3 @@ class SaveData(QObject):
 
     def stop(self):
         self.run = False
-
-if __name__ == "__main__":
-    test = SaveData(key='C', res="1280x720", zoom=-4, autosend=False)
-    test.main()
-

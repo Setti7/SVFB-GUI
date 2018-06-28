@@ -5,8 +5,8 @@ from PyQt5.QtWidgets import QDialog
 from PyQt5.QtCore import pyqtSignal
 from PyQt5 import QtGui
 from PyQt5.uic import loadUi
+from SVFBFuncs.Globals import BASE_URL
 
-BASE_URL = 'http://127.0.0.1'
 
 class AccountManager(QDialog):
     user_logged = pyqtSignal(dict)
@@ -23,7 +23,7 @@ class AccountManager(QDialog):
     def initUI(self):
         loadUi('designs\\login_dialog.ui', self)
 
-        self.setWindowIcon(QtGui.QIcon('media\\logo\\logo.png'))
+        self.setWindowIcon(QtGui.QIcon('media\\logo\\logo.ico'))
         self.login_btn.clicked.connect(self.login)
         self.create_account_btn.clicked.connect(self.create_account)
         self.login_error.hide()

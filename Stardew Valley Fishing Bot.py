@@ -6,7 +6,7 @@ logging.basicConfig(filename='log.log', level=logging.INFO, format='%(levelname)
 
 import json, datetime, random
 import sys, numpy as np, os, webbrowser
-from PyQt5.QtWidgets import QWidget, QMainWindow, QApplication, QMessageBox, QDialog, QMenuBar, QRubberBand
+from PyQt5.QtWidgets import QWidget, QMainWindow, QApplication, QMessageBox, QDialog, QMenuBar, QAction
 from PyQt5.QtCore import QThread, QObject, pyqtSignal, pyqtSlot, QTimer, Qt
 from PyQt5 import QtGui
 from PyQt5.uic import loadUi
@@ -83,6 +83,7 @@ class Widget(QMainWindow):
         self.update_check_done = False
         self.call_update_box = False
         self.call_accnt_box = False
+        self.update_available = False
         self.startup_authorize_user()
         self.startup_update_check()
 
@@ -191,15 +192,34 @@ class Widget(QMainWindow):
 
     # Send message
     def send_message(self):
+
         msg = self.message_text.toPlainText()
 
-        if len(msg) > 240:
+        if self.update_available:
+
+            bug_box = QMessageBox()
+            bug_box.setIcon(QMessageBox.Warning)
+            bug_box.setText("<strong>You can't send bug reports while using an outdated version!</strong>")
+            bug_box.setInformativeText(
+                """Please click <i>Ok</i> to download the newer one. Maybe your bug is already fixed."""
+            )
+            bug_box.setWindowTitle("Please update before sending bug reports")
+            bug_box.setWindowIcon(QtGui.QIcon('media\\logo\\logo.png'))
+
+            bug_box.setEscapeButton(QMessageBox.Close)
+            bug_box.addButton(QMessageBox.Close)
+
+            ok = bug_box.addButton(QMessageBox.Ok)
+            ok.clicked.connect(lambda: webbrowser.open(BASE_URL + "/home"))
+            bug_box.exec_()
+
+        elif len(msg) > 1000:
 
             self.message_status_label.clear()
             self.message_status_label.setStyleSheet("color: #dc3545;")
 
             self.timer_msg0 = QTimer()
-            self.timer_msg0.timeout.connect(lambda: self.message_status_label.setText("Your message is to big!\nThe maximum is 240 chars."))
+            self.timer_msg0.timeout.connect(lambda: self.message_status_label.setText("Your message is to big!\nThe maximum is 1000 chars."))
             self.timer_msg0.timeout.connect(self.timer_msg0.stop)
             self.timer_msg0.timeout.connect(self.timer_msg0.deleteLater)
             self.timer_msg0.start(200)
@@ -219,7 +239,13 @@ class Widget(QMainWindow):
             try:
                 self.session.get(upload_url)
                 csrftoken = self.session.cookies['csrftoken']  # get ranking page crsf token
-                data = {'csrfmiddlewaretoken': csrftoken, 'msg': msg, 'user': user, 'contact': contact}
+                data = {
+                    'csrfmiddlewaretoken': csrftoken,
+                    'message': msg,
+                    'user': user,
+                    'contact': contact,
+                    'version': self.version,
+                }
 
                 response = self.session.post(upload_url, data=data)
                 result = json.loads(response.text)
@@ -242,6 +268,7 @@ class Widget(QMainWindow):
             except Exception as e:
                 print(e)
                 logger.error(e)
+
 
     # Startup Processes:
     def startup_update_check(self):
@@ -361,6 +388,31 @@ class Widget(QMainWindow):
         self.dog_timer.stop()
 
 
+    def call_not_critical_update_message_box(self, *args, **kwargs):
+        current_version = kwargs['current_version']
+        new_version = kwargs['new_version']
+        changes = kwargs['changes']
+
+        updateBox = QMessageBox()
+        updateBox.setIcon(QMessageBox.Information)
+        updateBox.setText(
+            """This new version has no critical changes, so you can choose to download it or not. Check the changelog below!"""
+        )
+        updateBox.setWindowTitle("New Update Available")
+        updateBox.setWindowIcon(QtGui.QIcon('media\\logo\\logo.png'))
+
+        text = """Version available: {1}\n\n{2}""".format(current_version, new_version,
+                                                          changes)
+        updateBox.setDetailedText(text)
+
+        updateBox.setEscapeButton(QMessageBox.Close)
+        updateBox.addButton(QMessageBox.Close)
+
+        ok = updateBox.addButton(QMessageBox.Ok)
+        ok.setText('Update')
+        ok.clicked.connect(lambda: webbrowser.open(BASE_URL + "/home"))
+        updateBox.exec_()
+
     # Notification of new version:
     def update_message_box(self, update_info):
 
@@ -375,6 +427,8 @@ class Widget(QMainWindow):
             update = False
 
         if update:
+            self.update_available = True
+
             current_version = update_info['Current Version']
             new_version = update_info['New Version']
             changes = update_info['Changes']
@@ -382,35 +436,22 @@ class Widget(QMainWindow):
             logger.info("Update critical: %s" % critical)
 
             if not critical:
-                updateBox = QMessageBox()
-                updateBox.setIcon(QMessageBox.Information)
-                updateBox.setText("There is a new version available!")
-                updateBox.setInformativeText(
-                    """Please click "Ok" to be redirected to the download page. You can also see the changelog details below!"""
+
+                self.v_label.setText("v{} (<a href='#'>update to v{}</a>)".format(self.version, new_version))
+                self.v_label.mousePressEvent = lambda args: self.call_not_critical_update_message_box(
+                    current_version=current_version,
+                    new_version=new_version,
+                    changes=changes,
                 )
-                updateBox.setWindowTitle("Update required")
-                updateBox.setWindowIcon(QtGui.QIcon('media\\logo\\logo.png'))
 
-                text = """Version available: {1}\n\n{2}""".format(current_version, new_version,
-                                                                  changes)
-                updateBox.setDetailedText(text)
-
-                updateBox.setEscapeButton(QMessageBox.Close)
-                updateBox.addButton(QMessageBox.Close)
-                self.v_label.setText("v{} (v{} available)".format(self.version, new_version))
-
-                ok = updateBox.addButton(QMessageBox.Ok)
-                ok.clicked.connect(lambda: webbrowser.open(BASE_URL + "/home"))
-                updateBox.exec_()
-
-            else:
+            if critical:
                 updateBox = QMessageBox()
                 updateBox.setIcon(QMessageBox.Warning)
                 updateBox.setText("<strong>Your version is super outdated and is not useful anymore!</strong>")
                 updateBox.setInformativeText(
                     """Please click <i>Ok</i> to download the newer one. You can also see the changelog details below! <small>(The critical change is highlighted)</small>"""
                 )
-                updateBox.setWindowTitle("Unsupported Software")
+                updateBox.setWindowTitle("Unsupported Version")
                 updateBox.setWindowIcon(QtGui.QIcon('media\\logo\\logo.png'))
 
                 text = """Version available: {1}\n\n{2}""".format(current_version, new_version,

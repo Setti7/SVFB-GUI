@@ -10,7 +10,7 @@ class ChangeKey(QDialog):
     def __init__(self):
         super().__init__()
         self.initUI()
-        self.setWindowIcon(QtGui.QIcon('media\\logo\\logo.png'))
+        self.setWindowIcon(QtGui.QIcon('media\\logo\\logo.ico'))
 
         self.save_btn.clicked.connect(self.save)
         self.close_btn.clicked.connect(self.close)

@@ -4,8 +4,8 @@ logging.basicConfig(filename='log.log', level=logging.INFO, format='%(levelname)
 
 from PyQt5.QtCore import QObject, pyqtSignal
 import os, json
+from SVFBFuncs.Globals import BASE_URL
 
-BASE_URL = "http://127.0.0.1"
 
 class SendData(QObject):
     status_code = pyqtSignal(int)

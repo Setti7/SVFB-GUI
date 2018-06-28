@@ -6,8 +6,7 @@ import json, datetime
 from urllib.request import urlopen
 from urllib.error import URLError
 from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot
-
-BASE_URL = 'http://127.0.0.1'
+from SVFBFuncs.Globals import BASE_URL
 
 
 class CheckForUpdates(QObject):

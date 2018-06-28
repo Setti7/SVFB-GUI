@@ -4,8 +4,8 @@ logging.basicConfig(filename='log.log', level=logging.INFO, format='%(levelname)
 
 import requests, json
 from PyQt5.QtCore import QThread, QObject, pyqtSignal, pyqtSlot
+from SVFBFuncs.Globals import BASE_URL
 
-BASE_URL = "http://127.0.0.1"
 
 class LoginWorker(QObject):
     result = pyqtSignal(dict)
@@ -34,7 +34,6 @@ class LoginWorker(QObject):
             response = client.post(login_url, data=login_data)
             result = json.loads(response.content)
 
-            print(result)
             if result['success']:
                 self.result.emit({"Logged": True, "Username": self.username, "Password": self.password, "Session": client})
 

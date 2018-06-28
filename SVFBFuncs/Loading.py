@@ -13,7 +13,7 @@ class Loading(QDialog):
 
     def initUI(self):
         loadUi('designs\\loading_dialog.ui', self)
-        self.setWindowIcon(QtGui.QIcon('media\\logo\\logo.png'))
+        self.setWindowIcon(QtGui.QIcon('media\\logo\\logo.ico'))
 
         self.loading_animation = QtGui.QMovie("media\\animations\\loading.gif")
         self.loading_label.setMovie(self.loading_animation)

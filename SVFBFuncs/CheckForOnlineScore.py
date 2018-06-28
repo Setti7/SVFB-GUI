@@ -4,8 +4,8 @@ logging.basicConfig(filename='log.log', level=logging.INFO, format='%(levelname)
 
 import json
 from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot, QTimer
+from SVFBFuncs.Globals import BASE_URL
 
-BASE_URL = "http://127.0.0.1"
 
 # class CheckForOnlineScore(QObject):
 #     online_score = pyqtSignal(int)
