@@ -10,17 +10,15 @@ from PyQt5.QtWidgets import QWidget, QMainWindow, QApplication, QMessageBox, QDi
 from PyQt5.QtCore import QThread, QObject, pyqtSignal, pyqtSlot, QTimer, Qt
 from PyQt5 import QtGui
 from PyQt5.uic import loadUi
-from GUI_functions.SaveData import SaveData
-from GUI_functions.AccountManager import AccountManager
-from GUI_functions.CheckForOnlineScore import QuickCheck
-from GUI_functions.ChangeKey import ChangeKey
-from GUI_functions.LoginWorker import LoginWorker
-from GUI_functions.SendFiles import SendData
-from GUI_functions.Loading import Loading
-from GUI_functions.CheckForUpdates import CheckForUpdates
-
-BASE_URL = 'http://127.0.0.1'
-DEV = True
+from SVFBFuncs.SaveData import SaveData
+from SVFBFuncs.AccountManager import AccountManager
+from SVFBFuncs.CheckForOnlineScore import QuickCheck
+from SVFBFuncs.ChangeKey import ChangeKey
+from SVFBFuncs.LoginWorker import LoginWorker
+from SVFBFuncs.SendFiles import SendData
+from SVFBFuncs.Loading import Loading
+from SVFBFuncs.CheckForUpdates import CheckForUpdates
+from SVFBFuncs.Globals import DEV, BASE_URL
 
 def except_hook(cls, exception, traceback):
     sys.__excepthook__(cls, exception, traceback)
@@ -79,11 +77,15 @@ class Widget(QMainWindow):
         else:
             wait_time = random.randint(3550, 4500)
 
+        # Defining control variables:
         self.auth_done = False
         self.update_check_done = False
         self.call_update_box = False
         self.call_accnt_box = False
         self.update_available = False
+        self.wait_counter = 0
+
+        # Startup processes:
         self.startup_authorize_user()
         self.startup_update_check()
 
@@ -93,7 +95,7 @@ class Widget(QMainWindow):
 
 
         # Icons:
-        self.setWindowIcon(QtGui.QIcon('media\\logo\\logo.png'))
+        self.setWindowIcon(QtGui.QIcon('media\\logo\\logo.ico'))
         self.dog_getting_up = QtGui.QMovie('media\\animations\\Dog Getting Up4.gif')
         self.dog_running = QtGui.QMovie('media\\animations\\Dog Running4.gif')
         self.dog_idle = QtGui.QMovie('media\\animations\\Dog Idle2.gif')
@@ -204,7 +206,7 @@ class Widget(QMainWindow):
                 """Please click <i>Ok</i> to download the newer one. Maybe your bug is already fixed."""
             )
             bug_box.setWindowTitle("Please update before sending bug reports")
-            bug_box.setWindowIcon(QtGui.QIcon('media\\logo\\logo.png'))
+            bug_box.setWindowIcon(QtGui.QIcon('media\\logo\\logo.ico'))
 
             bug_box.setEscapeButton(QMessageBox.Close)
             bug_box.addButton(QMessageBox.Close)
@@ -314,13 +316,32 @@ class Widget(QMainWindow):
         self.login_thread.started.connect(self.login_worker.do_work)
         self.login_thread.start()
 
+    # If the user clicks the retry connection button too much:
+    def wait_motherfucker(self, *args):
+        self.wait_counter += 1
+
+        if self.wait_counter >= 5:
+            self.wait_counter = 0
+            wait = QMessageBox()
+            wait.setIcon(QMessageBox.Warning)
+            wait.setText("<strong>I AM TRYING TO CONNECT ALREADY. STOP MASHING THAT DAMN BUTTON")
+            wait.setInformativeText(
+                """I'm doing my best ok? Just have a little patience please."""
+            )
+            wait.setWindowTitle("FOR GOD'S SAKE, WAIT!")
+            wait.setWindowIcon(QtGui.QIcon('media\\logo\\logo.ico'))
+
+            close = wait.addButton(QMessageBox.Close)
+            close.setText("Ok... I will stop")
+            wait.setEscapeButton(QMessageBox.Close)
+            wait.exec_()
 
     def retry_connection(self, *args):
         # *args are necessary so it can be called from the mousePressEvent
 
         # Label
         self.username_label.setText("Connecting")
-        self.username_label.mousePressEvent = lambda x: print("Wait motherfucker")
+        self.username_label.mousePressEvent = lambda x: self.wait_motherfucker()
 
         # Thread:
         self.login_thread = QThread()
@@ -399,7 +420,7 @@ class Widget(QMainWindow):
             """This new version has no critical changes, so you can choose to download it or not. Check the changelog below!"""
         )
         updateBox.setWindowTitle("New Update Available")
-        updateBox.setWindowIcon(QtGui.QIcon('media\\logo\\logo.png'))
+        updateBox.setWindowIcon(QtGui.QIcon('media\\logo\\logo.ico'))
 
         text = """Version available: {1}\n\n{2}""".format(current_version, new_version,
                                                           changes)
@@ -452,7 +473,7 @@ class Widget(QMainWindow):
                     """Please click <i>Ok</i> to download the newer one. You can also see the changelog details below! <small>(The critical change is highlighted)</small>"""
                 )
                 updateBox.setWindowTitle("Unsupported Version")
-                updateBox.setWindowIcon(QtGui.QIcon('media\\logo\\logo.png'))
+                updateBox.setWindowIcon(QtGui.QIcon('media\\logo\\logo.ico'))
 
                 text = """Version available: {1}\n\n{2}""".format(current_version, new_version,
                                                                   changes)
@@ -629,6 +650,7 @@ class Widget(QMainWindow):
             self.username_label.setText(
                 '<a href="#"><span style=" text-decoration: underline; color:#0000ff;">Retry Connection</span></a>'
             )
+            self.wait_counter = 0
 
         # region If the thread is not running, set btn as enabled, if thread is undefined, raise error and enable btn
         try:
