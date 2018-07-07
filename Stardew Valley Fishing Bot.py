@@ -39,7 +39,7 @@ class Widget(QMainWindow):
         username = output['User']
         password = output['Password']
         zoom = int(output["Zoom"])
-        logger.info('Config file loaded')
+    logger.info('Config file loaded')
 
     def __init__(self):
         super().__init__()
@@ -84,6 +84,7 @@ class Widget(QMainWindow):
         self.call_accnt_box = False
         self.update_available = False
         self.wait_counter = 0
+        self.online = False
 
         # Startup processes:
         self.startup_authorize_user()
@@ -109,16 +110,12 @@ class Widget(QMainWindow):
         self.used_key_label.setText('Using "{}" key to fish'.format(self.used_key))
         self.zoom_levelSpinBox.setValue(self.zoom)
         self.res_selection.setCurrentIndex(res_index)
-        self.score_file = "Data\\frames.npy"
-        if os.path.exists(self.score_file):
-            score = sum(list(np.load(self.score_file)))
-            self.update_score(score)
-        else:
-            self.update_score(0)
+
 
         # Configuring Signals:
         self.dialog = ChangeKey()
         self.dialog.new_key.connect(self.update_key)
+
 
         # Defining button/checkbox actions
         self.data_start.clicked.connect(self.data_start_action)
@@ -158,6 +155,7 @@ class Widget(QMainWindow):
 
         logger.info("UI Initialized")
 
+    # Loading screen controller
     def loading(self):
 
         if self.auth_done and self.update_check_done:
@@ -171,6 +169,7 @@ class Widget(QMainWindow):
             self.show()
 
 
+    # Identifying changes
     def zoom_value_changed(self):
         self.zoom = self.zoom_levelSpinBox.text()
 
@@ -272,7 +271,7 @@ class Widget(QMainWindow):
                 logger.error(e)
 
 
-    # Startup Processes:
+    # Startup Processes and connection functions:
     def startup_update_check(self):
         logger.info("Searching for updates")
         self.check_thread = QThread()
@@ -295,7 +294,6 @@ class Widget(QMainWindow):
         self.update_timer.start(200)
 
         self.update_check_done = True
-
 
     def startup_authorize_user(self):
         logger.info("Trying to login user")
@@ -374,29 +372,25 @@ class Widget(QMainWindow):
         # As gui has already loaded, we jump through the code made to stop the message box from appearing while loading
         self.call_update_box = True
 
+
     # Update Widget elements
     def update_key(self, key): # Updating used key for fishing after ChangeKey dialog:
         self.used_key_label.setText('Using "{}" key'.format(key))
         self.used_key = key
 
-    def update_score(self, score, **kwargs):
-        self.score = score
+    def update_score(self, **kwargs):
 
-        if self.score != 0:
-            self.score_label.setText("Local Score: {}".format(int(score)))
+        if 'offline' in kwargs.keys():
+            self.score_label.setText("Score: Offline")
 
-        if 'forced' in kwargs.keys():
-            self.score_label.setText("Local Score: {}".format(int(score)))
+        if 'waiting' in kwargs.keys():
+            self.score_label.setText("Score: Waiting Connection")
+
+        if 'not_logged' in kwargs.keys():
+            self.score_label.setText("Score: Not Logged")
 
         if 'online_score' in kwargs.keys():
-            online_score = kwargs['online_score']
-            if online_score != self.score:
-                if self.score != 0:
-                    self.score_label.setText("Online Score: {} ({})".format(online_score, int(score)))
-                    self.send_data()
-                else:
-                    self.score_label.setText("Online Score: {}".format(online_score,))
-
+            self.score_label.setText("Online Score: {}".format(kwargs['online_score']))
 
     def dog_go_idle(self):
         self.icons_label.setMovie(self.dog_idle)
@@ -409,6 +403,7 @@ class Widget(QMainWindow):
         self.dog_timer.stop()
 
 
+    # Notification of new version:
     def call_not_critical_update_message_box(self, *args, **kwargs):
         current_version = kwargs['current_version']
         new_version = kwargs['new_version']
@@ -434,7 +429,6 @@ class Widget(QMainWindow):
         ok.clicked.connect(lambda: webbrowser.open(BASE_URL + "/home"))
         updateBox.exec_()
 
-    # Notification of new version:
     def update_message_box(self, update_info):
 
         if self.call_update_box:
@@ -491,6 +485,9 @@ class Widget(QMainWindow):
 
     # Data processes:
     def data_start_action(self):
+        # Flag to indicate data collection is running
+        self.data_running = True
+
         self.data_start.setEnabled(False)
         self.data_stop.setEnabled(True)
         self.res_selection.setEnabled(False)
@@ -516,13 +513,8 @@ class Widget(QMainWindow):
         logger.info("Creating data thread")
         self.thread = QThread()
 
-        if hasattr(self, "session"):
-            if self.session:
-                logger.info("Starting data with: {}, {}, {}, {}".format(self.used_key, self.res, self.zoom, self.session))
-                self.worker = SaveData(self.used_key, self.res, self.zoom, session=self.session)
-        else:
-            logger.info("Starting data with: {}, {}, {}".format(self.used_key, self.res, self.zoom))
-            self.worker = SaveData(self.used_key, self.res, self.zoom)
+        logger.info("Starting data with: {}, {}, {}".format(self.used_key, self.res, self.zoom))
+        self.worker = SaveData(self.used_key, self.res, self.zoom)
 
         self.stop_signal.connect(self.worker.stop)  # connect stop signal to worker stop method
         self.worker.moveToThread(self.thread)
@@ -534,17 +526,16 @@ class Widget(QMainWindow):
         self.thread.started.connect(self.worker.main)
         self.thread.finished.connect(self.worker.stop)
 
-        self.worker.score.connect(self.update_score)
-
-        if hasattr(self, 'score_worker'):
-            self.worker.score.connect(self.score_worker.single_check_online_score)
+        self.worker.send_data.connect(self.send_data)
 
         self.worker.data_response_code.connect(self.auto_send_response_code_controller)
 
         self.thread.start()
 
-
     def data_stop_action(self):
+        # Flag to indicate data collection is not running
+        self.data_running = False
+
         self.data_start.setEnabled(True)
         self.data_stop.setEnabled(False)
         self.res_selection.setEnabled(True)
@@ -553,7 +544,7 @@ class Widget(QMainWindow):
         self.logout_btn.setEnabled(True)
         self.login_btn.setEnabled(True)
 
-        if self.send_btn.text() != "Can't send data while offline":
+        if self.online:
             self.send_btn.setEnabled(True)
 
         logger.info("Data stopped")
@@ -568,11 +559,6 @@ class Widget(QMainWindow):
         self.dog_timer2.timeout.connect(self.dog_go_idle)
         self.dog_timer2.start(370)
 
-        if os.path.exists(self.score_file):
-            score = sum(list(np.load(self.score_file)))
-            logger.info("Updating score")
-            self.update_score(score)
-
     def send_data(self):
         """
         Creates thread to send data and don't stop the execution of the program while it is uploading.
@@ -580,49 +566,67 @@ class Widget(QMainWindow):
         """
 
         self.send_btn.setEnabled(False)
-        try:
-            logger.info("Starting send data thread")
-            self.send_data_thread = QThread()  # Thread criado
-            self.send_data_worker = SendData(session=self.session)
-            self.send_data_worker.moveToThread(self.send_data_thread)
+        if self.online:
+            try:
+                logger.info("Starting send data thread")
+                self.send_data_thread = QThread()  # Thread criado
+                self.send_data_worker = SendData(session=self.session)
+                self.send_data_worker.moveToThread(self.send_data_thread)
 
-            self.send_data_worker.status_code.connect(self.auto_send_response_code_controller)
-            self.send_data_worker.status_code.connect(self.score_worker.single_check_online_score)
+                self.send_data_worker.status_code.connect(self.auto_send_response_code_controller)
+                self.send_data_worker.status_code.connect(self.score_worker.single_check_online_score)
 
-            self.send_data_worker.status_code.connect(self.send_data_worker.deleteLater) # Finished then deletes thread and worker
-            self.send_data_worker.status_code.connect(self.send_data_thread.quit)
-            self.send_data_thread.finished.connect(self.send_data_thread.deleteLater)
+                self.send_data_worker.status_code.connect(self.send_data_worker.deleteLater) # Finished then deletes thread and worker
+                self.send_data_worker.status_code.connect(self.send_data_thread.quit)
+                self.send_data_thread.finished.connect(self.send_data_thread.deleteLater)
 
-            self.send_data_thread.started.connect(self.send_data_worker.send_data)
+                self.send_data_thread.started.connect(self.send_data_worker.send_data)
 
-            self.send_data_thread.start()
-            logger.info('Send data thread started')
+                self.send_data_thread.start()
+                logger.info('Send data thread started')
 
 
-        except Exception as e:
-            logger.error("Could not start thread to send data: %s" % e)
-            QMessageBox.information(self, "Oops!", "Could not start thread to send data: %s" % e)
+            except Exception as e:
+                logger.error("Could not start thread to send data: %s" % e)
+                QMessageBox.information(self, "Oops!", "Could not start thread to send data: %s" % e)
+
+        else:
+            # Raises the little offline message
+            self.auto_send_response_code_controller(-2)
 
     def auto_send_response_code_controller(self, code):
         if code == 200:
             self.send_status_label.setText("Success! Thank you for helping!")
             self.send_status_label.setStyleSheet("color: #28a745;")
             self.send_btn.setText("Send Data")
-            self.score = 0
 
         elif code == -1:
             self.send_status_label.setText('Everything was already sent!')
             self.send_status_label.setStyleSheet("color: #dc3545;")
+            self.send_btn.setText("Send Data")
+
+        elif code == -2:
+            self.send_status_label.setText('Could not connect to server. Session is saved.')
+            self.send_status_label.setStyleSheet("color: #ffaf00;")
+            self.update_score(waiting=True)
+            self.send_btn.setText("Send Data (upload pending)")
 
         else:
-            self.send_status_label.setText('Error! Verify your connection')
+            self.send_status_label.setText("Verify your connection")
             self.send_status_label.setStyleSheet("color: #dc3545;")
+            self.update_score(offline=True)
+
 
         self.timer = QTimer()
         self.timer.timeout.connect(self.send_status_label.clear)
         self.timer.start(5000)
 
-        self.send_btn.setEnabled(True)
+        if hasattr(self, 'data_running'):
+            if not self.data_running:
+                self.send_btn.setEnabled(True)
+        else:
+            self.send_btn.setEnabled(True)
+
 
     # Account functions:
     def login_control(self, results):
@@ -637,12 +641,15 @@ class Widget(QMainWindow):
                 self.logout_btn.setVisible(True)
 
             else:
-
+                # If user has failed to login, keep calling the function until loading stops, so it does not pop up
+                # with the loading screen still on.
                 self.accnt_timer = QTimer()
                 self.accnt_timer.timeout.connect(self.login_error)
                 self.accnt_timer.start(200)
 
         if "Offline" in results.keys():
+            self.online = False
+            self.update_score(offline=True)
             logger.warning("Offline")
 
             self.logout_btn.setVisible(True)
@@ -652,18 +659,8 @@ class Widget(QMainWindow):
             )
             self.wait_counter = 0
 
-        # region If the thread is not running, set btn as enabled, if thread is undefined, raise error and enable btn
-        try:
-            if not self.thread.isRunning():
-                self.data_start.setEnabled(True)
-        except:
-            self.data_start.setEnabled(True)
-            self.data_start.setText("Start collecting")
-        # endregion
-
-
     def login_error(self):
-
+        # when the loading has finished, call the accnt manager pop up if the login failed
         if self.call_accnt_box:
             logger.warning("Login error")
             self.accnt_timer.stop()
@@ -681,24 +678,36 @@ class Widget(QMainWindow):
         self.username_label.setText("Not logged")
         self.logout_btn.setVisible(False)
         self.login_btn.setVisible(True)
-        self.update_score(0, forced=0)
+        self.update_score(not_logged=True)
 
     def user_has_logged(self, user_info):
+        # When the user has logged in, create a score thread with its user/password to get the online score.
+        # Check the online score as soon as possible.
         logger.info("User logged")
         self.username = user_info['Username']
         self.password = user_info['Password']
         self.session = user_info['Session']
 
-        self.send_btn.setText("Send data")
+        # Checking if there is data to be sent
+        if os.listdir('Data\\Training Data'):
+            self.send_btn.setText("Send data (upload pending)")
+        else:
+            self.send_btn.setText("Send data")
+
+        self.online = True
         self.username_label.setText(self.username)
         self.send_message_btn.setEnabled(True)
-        self.send_message_btn.setText("Send message that will be redirected to your\nparents")
+        self.send_message_btn.setText("Send cool message")
 
-        try:
-            self.thread.isRunning() # If data is being collected:
-
-        except:
+        # Fixes bug where offline user collecting data could retry connecting to the server, re-enabling the buttons.
+        if hasattr(self, 'data_running'):
+            if not self.data_running:
+                self.send_btn.setEnabled(True)
+                self.data_start.setEnabled(True)
+        else:
             self.send_btn.setEnabled(True)
+            self.data_start.setEnabled(True)
+
 
         # Score Thread initialization
         try:
@@ -711,7 +720,7 @@ class Widget(QMainWindow):
             self.logout_signal.connect(self.score_thread.quit)
             self.score_thread.finished.connect(self.score_thread.deleteLater)
 
-            self.score_worker.online_score.connect(lambda ol_score: self.update_score(self.score, online_score=ol_score))
+            self.score_worker.online_score.connect(lambda ol_score: self.update_score(online_score=ol_score))
 
             self.score_thread.start()
             logger.info("Score thread started")
@@ -722,6 +731,8 @@ class Widget(QMainWindow):
             QMessageBox.information(self, "Oops!", "Could not start score thread: %s" % e)
 
     def logout(self):
+        # When user logs out, emit a signal that kills the score_thread and score_worker, because the session will change
+        # if the user logs in with another account.
         self.logout_signal.emit()
         logger.info("User logged out")
 
@@ -743,7 +754,7 @@ class Widget(QMainWindow):
         with open('config.json', 'w') as f:
             json.dump(output, f)
 
-        self.update_score(0, forced=0)
+        self.update_score(not_logged=True)
         self.login_control({"Logged": False})
 
 

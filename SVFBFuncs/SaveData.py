@@ -2,7 +2,7 @@ import logging
 logger = logging.getLogger(__name__)
 logging.basicConfig(filename='log.log', level=logging.INFO, format='%(levelname)s (%(name)s):\t%(asctime)s \t %(message)s', datefmt='%d/%m/%Y %I:%M:%S')
 
-
+from uuid import uuid4
 import numpy as np
 import cv2, datetime
 from PyQt5.QtCore import QObject, pyqtSignal
@@ -49,42 +49,23 @@ def fishing_region(img, region_template_gray, w, h):
 
 class SaveData(QObject):
     finished = pyqtSignal()
-    score = pyqtSignal(int)
     data_response_code = pyqtSignal(int)
+    send_data = pyqtSignal()
 
-    def __init__(self, key, res, zoom, session=None, parent=None):
+    def __init__(self, key, res, zoom, parent=None):
         QObject.__init__(self, parent=parent)
         self.res = [int(x_or_y) for x_or_y in res.split('x')]
         self.zoom = zoom
         self.key = key
 
-        if session:
-            self.session = session
-
         self.run = True
 
     def main(self):
 
-        file_name = 'Data\\training_data.npy'
-        frame_file = 'Data\\frames.npy'
+        file_name = 'Data\\Training Data\\%s.npy' % uuid4()
 
-        # region Checking if data files already exists
-        if os.path.isfile(file_name):
-            logger.info("Loading training data file")
-            training_data = np.load(file_name)
-
-        else:
-            logger.warning("Training data file does not exist")
-            training_data = np.empty(shape=[0, 2])
-
-        if os.path.isfile(frame_file):
-            logger.info("Loading frames file")
-            frames =  np.load(frame_file)
-
-        else:
-            logger.warning("Frames file does not exist")
-            frames = np.empty(shape=[0, 1])
-        # endregion
+        logger.info("Training data file created")
+        training_data = np.empty(shape=[0, 2])
 
         # Loading template:
         logger.info("Loading template image")
@@ -148,40 +129,23 @@ class SaveData(QObject):
                 final_time = datetime.datetime.now()
                 was_fishing = False
 
-                if len(frames) == 0:
-                    # print('list of frames is new')
-                    new_frames = np.float64(len(training_data))
-
-                else:
-                    new_frames = len(training_data) - sum(frames)
+                new_frames = np.float64(len(training_data))
 
                 print("Frames analysed: %s" % new_frames)
 
                 if new_frames >= 75:
-                    frames = np.append(frames, new_frames)
-
-                    np.save(frame_file, frames)
 
                     print("Saving...")
                     np.save(file_name, training_data)
 
-                    if hasattr(self, 'session'):
-                        send = SendData(self.session, send_return=True)
-                        result = send.send_data()
-                        print("Result code: ", result)
-                        self.data_response_code.emit(result)
-
-                        if result == 200:
-                            logger.info("Erasing files from memory and starting over")
-                            training_data = np.empty(shape=[0, 2])
-                            frames = np.empty(shape=[0, 1])
-                            logger.info("Files erased from memory.")
-
-                    self.score.emit(sum(frames))
+                    self.send_data.emit()
 
                 else:
                     print("Not saving!")
                     logger.debug("Data too small")
+
+                training_data = np.empty(shape=[0, 2])
+                file_name = 'Data\\Training Data\\%s.npy' % uuid4()
 
                 # Necessary to reset the region coordinates after every fishing session.
                 coords = None
