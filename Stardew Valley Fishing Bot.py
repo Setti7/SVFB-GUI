@@ -249,16 +249,22 @@ class Widget(QMainWindow):
                 }
 
                 response = self.session.post(upload_url, data=data)
-                result = json.loads(response.text)
 
-                print(result)
-                if result['success']:
-                    self.message_status_label.setText("Message successfully sent!")
-                    self.message_status_label.setStyleSheet("color: #28a745;")
-
-                else:
+                if response.status_code == 404:
                     self.message_status_label.setText("There was an error while sending!")
                     self.message_status_label.setStyleSheet("color: #dc3545;")
+
+                else:
+
+                    result = json.loads(response.text)
+
+                    if result['success']:
+                        self.message_status_label.setText("Message successfully sent!")
+                        self.message_status_label.setStyleSheet("color: #28a745;")
+
+                    else:
+                        self.message_status_label.setText("There was an error while sending!")
+                        self.message_status_label.setStyleSheet("color: #dc3545;")
 
                 self.timer_msg = QTimer()
                 self.timer_msg.timeout.connect(self.message_status_label.clear)
