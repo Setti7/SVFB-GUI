@@ -30,7 +30,7 @@ class AccountManager(QDialog):
         self.login_error.setStyleSheet("color: #dc3545;")
         self.create_account_error.hide()
         self.create_account_frame.hide()
-        self.resize(287, 160)
+        self.setFixedSize(287, 160)
         self.login_resized = False
         self.clicked_first = True
 
@@ -38,7 +38,7 @@ class AccountManager(QDialog):
         if self.clicked_first:
             width = self.width()
             height = self.height()
-            self.resize(width, height + 175)
+            self.setFixedSize(width, height + 175)
             self.create_account_error.setText("""Complete the spaces below to \ncreate a new account.""")
             self.create_account_error.show()
             self.create_account_btn.clicked.connect(self.create_account_online)
@@ -74,6 +74,7 @@ class AccountManager(QDialog):
                     output = json.loads(f.read())
                     output['User'] = username
                     output['Password'] = password1
+                    output['Ignore Login Popup'] = False
 
                 with open("config.json", "w") as f:
                     json.dump(output, f)
@@ -86,7 +87,9 @@ class AccountManager(QDialog):
                 self.create_password.clear()
                 self.create_password_confirm.clear()
                 self.create_account_error.setText(
-                    """An error ocurred. Please try again.<br>If the error persists, create the account <a href="http://127.0.0.1:8000/accounts/create/?next=/home/"><span style=" text-decoration: underline; color:#0000ff;">here</span></a>""")
+                    'An error ocurred. Please try again.<br>If the error persists, create the account <a href="{base_url}/accounts/create"><span style=" text-decoration: underline; color:#0000ff;">here</span></a>'.format(
+                        base_url=BASE_URL
+                    ))
 
         except Exception as e:
             print(e)
@@ -114,6 +117,7 @@ class AccountManager(QDialog):
                     output = json.loads(f.read())
                     output['User'] = username
                     output['Password'] = password
+                    output['Ignore Login Popup'] = False
 
                 with open("config.json", "w") as f:
                     json.dump(output, f)
@@ -129,7 +133,7 @@ class AccountManager(QDialog):
                 if not self.login_resized:
                     width = self.width()
                     height = self.height()
-                    self.resize(width, height + 20)
+                    self.setFixedSize(width, height + 20)
                     self.login_resized = True
 
                 self.login_error.show()
