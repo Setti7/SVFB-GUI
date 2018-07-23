@@ -189,7 +189,7 @@ class Widget(QMainWindow):
         visit_ranking.triggered.connect(lambda: webbrowser.open(BASE_URL + "/ranking"))
 
         website = self.menu.addAction('GitHub')
-        website.triggered.connect(lambda: webbrowser.open("https://www.github.com/Setti7/Stardew-Valley-Fishing-Bot"))
+        website.triggered.connect(lambda: webbrowser.open("https://github.com/Setti7/SVFB-GUI"))
 
         logger.info("UI Initialized")
 
