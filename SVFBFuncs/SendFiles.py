@@ -39,7 +39,7 @@ class SendData(QObject):
                 self.client.get(upload_url)
                 file_csrftoken = self.client.cookies['csrftoken']
                 file_data = {'csrfmiddlewaretoken': file_csrftoken,
-                             'version': self.version}
+                              'version': self.version}
 
                 logger.info("Sending file")
 
