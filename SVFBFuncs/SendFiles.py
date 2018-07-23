@@ -8,6 +8,9 @@ from SVFBFuncs.Globals import BASE_URL
 
 
 class SendData(QObject):
+    # Código padrão de envio de POST requests
+    # Tenta enviar ao servidor todos os arquivos que estão na pasta "Data/Training Data", para isso renomeia o arquivo
+    # antes de envia-lo para "training_data.npy" (o servidor só aceita arquivos assim, como forma de precaução)
     status_code = pyqtSignal(int)
 
     def __init__(self, session, parent=None):
@@ -18,7 +21,7 @@ class SendData(QObject):
     def send_data(self):
         upload_url = BASE_URL + "/api/data-upload"
 
-        # if file was already sent
+        # Caso não tenha arquivos na pasta
         if not os.listdir('Data\\Training Data'):
             logger.warning("Files does not exist, data already sent.")
             self.status_code.emit(-1)
@@ -30,9 +33,12 @@ class SendData(QObject):
 
         else:
             try:
+
+                # Pra fazer POST precisa do csrftoken cookie antes (não é necessário um para cada envio):
                 self.client.get(upload_url)
-                file_csrftoken = self.client.cookies['csrftoken']  # get ranking page crsf token
+                file_csrftoken = self.client.cookies['csrftoken']
                 file_data = {'csrfmiddlewaretoken': file_csrftoken}
+
                 logger.info("Sending file")
 
                 for file in os.listdir('Data\\Training Data'):
@@ -58,9 +64,10 @@ class SendData(QObject):
                     os.remove(file_path)
                     logger.info("Files deleted")
 
+                    # Sinaliza ao main_thread qual a situação do envio dos dados, para que ele exiba aquelas notificações
+                    # acima do botão "Send", informando o usuário se foi realmente enviado.
                     self.status_code.emit(response.status_code)
 
             except Exception as e:
                 logger.error("Error while sending data: %s" % e)
-                print('ERROR $212')
                 self.status_code.emit(-2)

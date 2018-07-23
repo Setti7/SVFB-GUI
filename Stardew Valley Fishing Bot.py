@@ -27,25 +27,44 @@ def except_hook(cls, exception, traceback):
 
 class Widget(QMainWindow):
     logger.info("---------- STARTED ----------")
-    stop_signal = pyqtSignal()
+    stop_signal = pyqtSignal() # sinaliza que o usuário clicou em "Stop Data Colleting"
     logout_signal = pyqtSignal()
 
-    with open("config.json", "r") as f:
-        logger.info('Loading config file')
-        output = json.loads(f.read())
-        version = output['Version']
-        date = datetime.datetime.strptime(output['Date'], '%Y-%m-%d')
-        used_key = output["Used key"]
-        res = output["Resolution"]
-        username = output['User']
-        password = output['Password']
-        zoom = int(output["Zoom"])
-        ignore_login = output['Ignore Login Popup']
+    try:
+        with open("config.json", "r") as f:
+            logger.info('Loading config file')
+            output = json.loads(f.read())
+            version = output['Version']
+            date = datetime.datetime.strptime(output['Date'], '%Y-%m-%d')
+            used_key = output["Used key"]
+            res = output["Resolution"]
+            username = output['User']
+            password = output['Password']
+            zoom = int(output["Zoom"])
+            ignore_login = output['Ignore Login Popup']
+
+    except Exception as e:
+        logger.error(e)
+        QMessageBox.warning(
+            "Error!",
+            'There was an error while loading the config file. Please restart the application and re-configure your settings. If it persists, reinstall.'
+        )
 
     logger.info('Config file loaded')
 
     def __init__(self):
         super().__init__()
+
+        # Check if all files/folders are present. If aren't, raise a flag so a pop-up appears when loading is done
+        self.call_first_time_running = False
+        if not os.path.exists("Data"):
+            os.mkdir("Data")
+            self.call_first_time_running = True
+
+        if not os.path.exists("Data\\Training Data"):
+            os.mkdir("Data\\Training Data")
+            self.call_first_time_running = True
+
 
         if self.res == '1280x600': self.res_index = 0
         elif self.res == '1280x720': self.res_index = 1
@@ -195,11 +214,16 @@ class Widget(QMainWindow):
             self.loading_dialog.close()
             self.show()
 
+            if self.call_first_time_running:
+                msg_box = QMessageBox()
+                msg_box.setIcon(QMessageBox.Information)
+                msg_box.setText("<strong>Thank you for helping the project!</strong>")
+                msg_box.setInformativeText("Don't forget to configure your settings so the application can work correctly.")
+                msg_box.setWindowTitle("Welcome!")
+                msg_box.setWindowIcon(QtGui.QIcon('media\\logo\\logo.ico'))
+                msg_box.exec_()
 
     def update_settings(self, settings):
-
-
-        #TODO: fazer um label com as opções atuais na tela do bot e do data collecting.
 
         self.res = settings['resolution']
         self.used_key = settings['key'].upper()
@@ -593,8 +617,6 @@ class Widget(QMainWindow):
 
         self.worker.send_data.connect(self.send_data)
 
-        self.worker.data_response_code.connect(self.auto_send_response_code_controller)
-
         self.thread.start()
 
     def data_stop_action(self):
@@ -870,6 +892,7 @@ class Widget(QMainWindow):
         except Exception as e:
             logger.error("Could not start score thread: %s" % e)
             QMessageBox.information(self, "Oops!", "Could not start score thread: %s" % e)
+
     # When user tries to login with the login button at the menu
     def runtime_login(self):
         self.ignore_login = False
