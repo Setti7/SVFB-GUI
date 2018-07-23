@@ -208,7 +208,6 @@ class Widget(QMainWindow):
 
             if self.call_first_time_running:
                 msg_box = QMessageBox()
-                msg_box.setIcon(QMessageBox.Information)
                 msg_box.setText("<strong>Thank you for helping the project!</strong>")
                 msg_box.setInformativeText("Don't forget to configure your settings so the application can work correctly.")
                 msg_box.setWindowTitle("Welcome!")
@@ -656,7 +655,7 @@ class Widget(QMainWindow):
             try:
                 logger.info("Starting send data thread")
                 self.send_data_thread = QThread()  # Thread criado
-                self.send_data_worker = SendData(session=self.session)
+                self.send_data_worker = SendData(session=self.session, version=self.version)
                 self.send_data_worker.moveToThread(self.send_data_thread)
 
                 self.send_data_worker.status_code.connect(self.auto_send_response_code_controller)

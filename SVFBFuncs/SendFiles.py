@@ -13,9 +13,10 @@ class SendData(QObject):
     # antes de envia-lo para "training_data.npy" (o servidor só aceita arquivos assim, como forma de precaução)
     status_code = pyqtSignal(int)
 
-    def __init__(self, session, parent=None):
+    def __init__(self, session, version, parent=None):
         QObject.__init__(self, parent=parent)
         self.client = session
+        self.version = version
 
 
     def send_data(self):
@@ -37,7 +38,7 @@ class SendData(QObject):
                 # Pra fazer POST precisa do csrftoken cookie antes (não é necessário um para cada envio):
                 self.client.get(upload_url)
                 file_csrftoken = self.client.cookies['csrftoken']
-                file_data = {'csrfmiddlewaretoken': file_csrftoken}
+                file_data = {'csrfmiddlewaretoken': file_csrftoken, 'version': self.version}
 
                 logger.info("Sending file")
 
