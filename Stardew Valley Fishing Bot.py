@@ -2,7 +2,7 @@ import logging
 logger = logging.getLogger(__name__)
 logging.basicConfig(filename='log.log', level=logging.INFO, format='%(levelname)s (%(name)s):\t%(asctime)s \t %(message)s', datefmt='%d/%m/%Y %I:%M:%S')
 
-#TODO: criar conta não envia automaticamente. Parece que não tem um sessão ativa online pra enviar
+#TODO:   criar conta não envia automaticamente. Parece que não tem um sessão ativa online pra enviar
 
 import json, datetime, random
 import sys, numpy as np, os, webbrowser
