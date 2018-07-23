@@ -14,22 +14,10 @@ from SVFBFuncs.Globals import BASE_URL
 class CheckForUpdates(QObject):
     update_text = pyqtSignal(dict)
 
-    try:
-        with open("config.json", "r") as f:
-            output = json.loads(f.read())
-            version = output['Version']
-            date = datetime.datetime.strptime(output['Date'], '%Y-%m-%d')
-
-    except Exception as e:
-
-        msg_box = QMessageBox()
-
-        msg_box.setIcon(QMessageBox.Warning)
-        msg_box.setText("<strong>Error</strong>")
-        msg_box.setInformativeText('There was an error while loading the config file. Please restart the application and re-configure your settings. If it persists, reinstall.')
-        msg_box.setWindowTitle("Error!")
-        msg_box.setWindowIcon(QIcon('media\\logo\\logo.ico'))
-        msg_box.exec_()
+    with open("config.json", "r") as f:
+        output = json.loads(f.read())
+        version = output['Version']
+        date = datetime.datetime.strptime(output['Date'], '%Y-%m-%d')
 
     def __init__(self, parent=None):
         QObject.__init__(self, parent=parent)

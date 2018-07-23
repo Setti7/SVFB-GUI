@@ -30,25 +30,17 @@ class Widget(QMainWindow):
     stop_signal = pyqtSignal() # sinaliza que o usuário clicou em "Stop Data Colleting"
     logout_signal = pyqtSignal()
 
-    try:
-        with open("config.json", "r") as f:
-            logger.info('Loading config file')
-            output = json.loads(f.read())
-            version = output['Version']
-            date = datetime.datetime.strptime(output['Date'], '%Y-%m-%d')
-            used_key = output["Used key"]
-            res = output["Resolution"]
-            username = output['User']
-            password = output['Password']
-            zoom = int(output["Zoom"])
-            ignore_login = output['Ignore Login Popup']
-
-    except Exception as e:
-        logger.error(e)
-        QMessageBox.warning(
-            "Error!",
-            'There was an error while loading the config file. Please restart the application and re-configure your settings. If it persists, reinstall.'
-        )
+    with open("config.json", "r") as f:
+        logger.info('Loading config file')
+        output = json.loads(f.read())
+        version = output['Version']
+        date = datetime.datetime.strptime(output['Date'], '%Y-%m-%d')
+        used_key = output["Used key"]
+        res = output["Resolution"]
+        username = output['User']
+        password = output['Password']
+        zoom = int(output["Zoom"])
+        ignore_login = output['Ignore Login Popup']
 
     logger.info('Config file loaded')
 
