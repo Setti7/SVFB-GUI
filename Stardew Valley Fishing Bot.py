@@ -189,7 +189,7 @@ class Widget(QMainWindow):
         visit_ranking.triggered.connect(lambda: webbrowser.open(BASE_URL + "/ranking"))
 
         website = self.menu.addAction('GitHub')
-        website.triggered.connect(lambda: webbrowser.open("https://www.github.com/Setti7/Stardew-Valley-Fishing-Bot"))
+        website.triggered.connect(lambda: webbrowser.open("https://github.com/Setti7/SVFB-GUI"))
 
         logger.info("UI Initialized")
 
@@ -656,7 +656,7 @@ class Widget(QMainWindow):
             try:
                 logger.info("Starting send data thread")
                 self.send_data_thread = QThread()  # Thread criado
-                self.send_data_worker = SendData(session=self.session)
+                self.send_data_worker = SendData(session=self.session, version=self.version)
                 self.send_data_worker.moveToThread(self.send_data_thread)
 
                 self.send_data_worker.status_code.connect(self.auto_send_response_code_controller)
