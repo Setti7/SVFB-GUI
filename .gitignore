@@ -102,3 +102,6 @@ ENV/
 
 # Pycharm
 .idea
+
+# Configs
+config.json
