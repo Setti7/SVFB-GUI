@@ -4,6 +4,7 @@ logging.basicConfig(filename='log.log', level=logging.INFO, format='%(levelname)
 
 from PyQt5.QtCore import QObject, pyqtSignal
 import os, json
+from uuid import uuid4
 from SVFBFuncs.Globals import BASE_URL
 
 
@@ -42,14 +43,18 @@ class SendData(QObject):
 
                 logger.info("Sending file")
 
+                if "training_data.npy" in os.listdir('Data\\Training Data'):
+                    os.rename('Data\\Training Data\\training_data.npy', 'Data\\Training Data\\%s.npy' % uuid4())
+
                 for file in os.listdir('Data\\Training Data'):
+
                     file_path = os.path.join('Data\\Training Data', file)
-                    os.rename(file_path, 'Data\\Training Data\\training_data.npy')
+                    file_to_send = 'Data\\Training Data\\training_data.npy'
 
-                    file_path = 'Data\\Training Data\\training_data.npy'
+                    os.rename(file_path, file_to_send)
 
-                    with open(file_path, 'rb') as file:
-                        response = self.client.post(upload_url, files={'file': file}, data=file_data)
+                    with open(file_to_send, 'rb') as f:
+                        response = self.client.post(upload_url, files={'file': f}, data=file_data)
 
                     result = json.loads(response.text)
                     print("RESULT SEND DATA: ", result)
@@ -62,7 +67,7 @@ class SendData(QObject):
                         logger.error("Error while sending data.")
                         response.status_code = 201
 
-                    os.remove(file_path)
+                    os.remove(file_to_send)
                     logger.info("Files deleted")
 
                     # Sinaliza ao main_thread qual a situação do envio dos dados, para que ele exiba aquelas notificações
