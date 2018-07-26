@@ -51,7 +51,14 @@ class SaveData(QObject):
 
     def __init__(self, key, res, zoom, parent=None):
         QObject.__init__(self, parent=parent)
-        self.res = [int(x_or_y) for x_or_y in res.split('x')]
+
+        if res == "Auto":
+            self.region = False
+
+        else:
+            res_x, res_y = [int(x_or_y) for x_or_y in res.split('x')]
+            self.region = (0, 40, res_x, res_y + 40)
+
         self.zoom = zoom
         self.key = key
 
@@ -87,7 +94,7 @@ class SaveData(QObject):
         while self.run:
 
             #res_x, res_y = self.res
-            screen, res_x, res_y = grabscreen.grab_screen() # Return gray screen
+            screen = grabscreen.grab_screen(region=self.region) # Return gray screen
 
             # screen = cv2.resize(screen, None, fx=0.3, fy=0.3) # TODO: using smaller img for less space used
 

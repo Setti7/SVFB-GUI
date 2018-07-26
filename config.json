@@ -1,7 +1,7 @@
 {
   "Used key": "C",
-  "Resolution": "1280x720",
-  "Zoom": 0,
+  "Resolution": "Auto",
+  "Zoom": "-4",
   "User": "",
   "Password": "",
   "Ignore Login Popup": true,

@@ -86,16 +86,18 @@ class Widget(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        if self.res == '1280x600': self.res_index = 0
-        elif self.res == '1280x720': self.res_index = 1
-        elif self.res == '1280x760': self.res_index = 2
-        elif self.res == '1280x800': self.res_index = 3
-        elif self.res == '1280x960': self.res_index = 4
-        elif self.res == '1280x1024': self.res_index = 5
-        elif self.res == '1980x1080': self.res_index = 6
+        if self.res == 'Auto': self.res_index = 0
+        elif self.res == '1280x600': self.res_index = 1
+        elif self.res == '1280x720': self.res_index = 2
+        elif self.res == '1280x760': self.res_index = 3
+        elif self.res == '1280x800': self.res_index = 4
+        elif self.res == '1280x960': self.res_index = 5
+        elif self.res == '1280x1024': self.res_index = 6
+        elif self.res == '1980x1080': self.res_index = 7
+
         else:
-            self.res = '1280x720'
-            self.res_index = 1
+            self.res = 'Auto'
+            self.res_index = 0
             with open("config.json", 'w') as f:
                 self.output['Resolution'] = self.res
                 json.dump(self.output, f, indent=2)
