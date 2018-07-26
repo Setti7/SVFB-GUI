@@ -34,6 +34,22 @@ class Widget(QMainWindow):
     logger.info("---------- STARTED ----------")
     stop_signal = pyqtSignal() # sinaliza que o usuário clicou em "Stop Data Colleting"
     logout_signal = pyqtSignal()
+    if(os.path.isfile("config.json")):
+        with open("config.json", "r") as f:
+            logger.info('Loading config file')
+            output = json.loads(f.read())
+            version = output['Version']
+            date = datetime.datetime.strptime(output['Date'], '%Y-%m-%d')
+            used_key = output["Used key"]
+            res = output["Resolution"]
+            username = output['User']
+            password = output['Password']
+            zoom = int(output["Zoom"])
+            ignore_login = output['Ignore Login Popup']
+            first_time = output['Fist time']
+    else:
+        print("config file missing. Creating new one")
+        default_json = {"Version": 1.0, "Date": "2018-06-23", "Used key": "C", "Resolution": "1280x720", "Zoom": "-4", "User": "", "Password": "", "Ignore Login Popup": false, "Fist time": false}
 
     date = datetime.datetime.strptime(RELEASE_DATE, '%Y-%m-%d')
     version = VERSION
@@ -47,6 +63,10 @@ class Widget(QMainWindow):
         password = output['Password']
         zoom = int(output["Zoom"])
         ignore_login = output['Ignore Login Popup']
+        first_time = output['Fist time']
+
+
+
 
     logger.info('Config file loaded')
 
@@ -207,21 +227,31 @@ class Widget(QMainWindow):
             self.loading_dialog.close()
             self.show()
 
-            if self.call_first_time_running:
-                msg_box = QMessageBox()
-                msg_box.setText("<strong>Thank you for helping the project!</strong>")
-                msg_box.setInformativeText("Don't forget to configure your settings so the application can work correctly.")
-                msg_box.setWindowTitle("Welcome!")
-                msg_box.setWindowIcon(QtGui.QIcon('media\\logo\\logo.ico'))
-                msg_box.exec_()
 
+
+    def welcome_message(self):
+
+        self.first_time = False
+        with open("config.json", 'r') as f:
+            output = json.loads(f.read())
+            output["Fist time"] = self.first_time
+
+        with open("config.json", "w") as f:
+            json.dump(output, f)
+
+        msg_box = QMessageBox()
+        msg_box.setText("<strong>Thank you for helping the project!</strong>")
+        msg_box.setInformativeText("Don't forget to configure your settings so the application can work correctly.")
+        msg_box.setWindowTitle("Welcome!")
+        msg_box.setWindowIcon(QtGui.QIcon('media\\logo\\logo.ico'))
+        msg_box.exec_()
     def update_settings(self, settings):
 
         self.res = settings['resolution']
         self.used_key = settings['key'].upper()
         self.zoom = settings['zoom']
 
-        with open ("config.json", 'r') as f:
+        with open("config.json", 'r') as f:
             output = json.loads(f.read())
             output["Resolution"] = self.res
             output["Zoom"] = self.zoom
@@ -802,6 +832,9 @@ class Widget(QMainWindow):
                 self.accnt_manager = AccountManager()
                 self.accnt_manager.user_logged.connect(self.user_has_logged)
                 self.accnt_manager.rejected.connect(self.login_rejected)
+                if self.first_time:
+                    self.accnt_manager.user_logged.connect(self.welcome_message)# display welcome message
+                    self.accnt_manager.rejected.connect(self.welcome_message)# display welcome message
                 self.accnt_manager.exec_()
 
             else:
@@ -920,6 +953,8 @@ class Widget(QMainWindow):
         runtime = (stop_time-start_time).total_seconds()
         logger.info('---------- CLOSED. Runtime: %ss ----------' % runtime)
         event.accept() #.ignore
+
+
 
 if __name__ == '__main__':
     start_time = datetime.datetime.now()
