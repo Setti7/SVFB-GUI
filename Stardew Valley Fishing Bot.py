@@ -8,7 +8,7 @@ import json, datetime, random
 import sys, numpy as np, os, webbrowser
 from PyQt5.QtWidgets import QWidget, QMainWindow, QApplication, QMessageBox, QDialog, QMenuBar, QAction
 from PyQt5.QtCore import QThread, QObject, pyqtSignal, pyqtSlot, QTimer, Qt
-from PyQt5 import QtGui
+from PyQt5 import QtGui, QtCore
 from PyQt5.uic import loadUi
 from SVFBFuncs.SaveData import SaveData
 from SVFBFuncs.AccountManager import AccountManager
@@ -21,8 +21,14 @@ from SVFBFuncs.CheckForUpdates import CheckForUpdates
 from SVFBFuncs.Globals import DEV, BASE_URL
 from SVFBFuncs.Settings import Settings
 
-def except_hook(cls, exception, traceback):
-    sys.__excepthook__(cls, exception, traceback)
+import traceback, sys
+
+# https://stackoverflow.com/questions/44447674/traceback-missing-when-exception-encountered-in-pyqt5-code-in-eclipsepydev
+if QtCore.QT_VERSION >= 0x50501:
+    def excepthook(type_, value, traceback_):
+        traceback.print_exception(type_, value, traceback_)
+        QtCore.qFatal('')
+    sys.excepthook = excepthook
 
 
 class Widget(QMainWindow):
