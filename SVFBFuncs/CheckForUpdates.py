@@ -8,16 +8,15 @@ from urllib.error import URLError
 from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot
 from PyQt5.QtWidgets import QMessageBox
 from PyQt5.QtGui import QIcon
-from SVFBFuncs.Globals import BASE_URL
+from SVFBFuncs.Globals import BASE_URL, VERSION, RELEASE_DATE
 
 
 class CheckForUpdates(QObject):
     update_text = pyqtSignal(dict)
 
-    with open("config.json", "r") as f:
-        output = json.loads(f.read())
-        version = output['Version']
-        date = datetime.datetime.strptime(output['Date'], '%Y-%m-%d')
+    # Version details:
+    version = VERSION
+    date = datetime.datetime.strptime(RELEASE_DATE, '%Y-%m-%d')
 
     def __init__(self, parent=None):
         QObject.__init__(self, parent=parent)

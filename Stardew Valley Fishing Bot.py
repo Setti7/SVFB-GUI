@@ -13,12 +13,11 @@ from PyQt5.uic import loadUi
 from SVFBFuncs.SaveData import SaveData
 from SVFBFuncs.AccountManager import AccountManager
 from SVFBFuncs.CheckForOnlineScore import QuickCheck
-from SVFBFuncs.ChangeKey import ChangeKey
 from SVFBFuncs.LoginWorker import LoginWorker
 from SVFBFuncs.SendFiles import SendData
 from SVFBFuncs.Loading import Loading
 from SVFBFuncs.CheckForUpdates import CheckForUpdates
-from SVFBFuncs.Globals import DEV, BASE_URL
+from SVFBFuncs.Globals import DEV, BASE_URL, VERSION, RELEASE_DATE
 from SVFBFuncs.Settings import Settings
 
 import traceback, sys
@@ -36,11 +35,12 @@ class Widget(QMainWindow):
     stop_signal = pyqtSignal() # sinaliza que o usuário clicou em "Stop Data Colleting"
     logout_signal = pyqtSignal()
 
+    date = datetime.datetime.strptime(RELEASE_DATE, '%Y-%m-%d')
+    version = VERSION
+
     with open("config.json", "r") as f:
         logger.info('Loading config file')
         output = json.loads(f.read())
-        version = output['Version']
-        date = datetime.datetime.strptime(output['Date'], '%Y-%m-%d')
         used_key = output["Used key"]
         res = output["Resolution"]
         username = output['User']
@@ -76,7 +76,7 @@ class Widget(QMainWindow):
             self.res_index = 1
             with open("config.json", 'w') as f:
                 self.output['Resolution'] = self.res
-                json.dump(self.output, f)
+                json.dump(self.output, f, indent=2)
             logger.warning("Config file resolution invalid.")
 
         print("Zoom -5: aparenta ok\n"
@@ -148,11 +148,6 @@ class Widget(QMainWindow):
                 key=self.used_key,
                 zoom=self.zoom
             ))
-
-
-        # Configuring Signals:
-        self.dialog = ChangeKey()
-        self.dialog.new_key.connect(self.update_key)
 
 
         # Defining button/checkbox actions
@@ -233,7 +228,7 @@ class Widget(QMainWindow):
             output["Used key"] = self.used_key
 
         with open("config.json", "w") as f:
-            json.dump(output, f)
+            json.dump(output, f, indent=2)
 
         # Changing labels
         # Bot tab
@@ -442,11 +437,6 @@ class Widget(QMainWindow):
         # As gui has already loaded, we jump through the code made to stop the message box from appearing while loading
         self.call_update_box = True
 
-
-    # Update Widget elements
-    def update_key(self, key): # Updating used key for fishing after ChangeKey dialog:
-        self.used_key_label.setText('Using "{}" key'.format(key))
-        self.used_key = key
 
     def update_score(self, **kwargs):
 
@@ -833,7 +823,7 @@ class Widget(QMainWindow):
             output["Ignore Login Popup"] = True
 
         with open("config.json", "w") as f:
-            json.dump(output, f)
+            json.dump(output, f, indent=2)
 
     def user_has_logged(self, user_info):
         # When the user has logged in, create a score thread with its user/password to get the online score.
@@ -919,7 +909,7 @@ class Widget(QMainWindow):
             output['User'] = ''
 
         with open('config.json', 'w') as f:
-            json.dump(output, f)
+            json.dump(output, f, indent=2)
 
         self.update_score(not_logged=True)
         self.login_control({"Logged": False})

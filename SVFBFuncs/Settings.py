@@ -3,7 +3,6 @@ from PyQt5.QtWidgets import QDialog
 from PyQt5.QtCore import pyqtSignal
 from PyQt5 import QtGui
 from PyQt5.uic import loadUi
-from .ChangeKey import ChangeKey
 
 class Settings(QDialog):
     finished = pyqtSignal(dict)

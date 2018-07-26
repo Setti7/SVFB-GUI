@@ -3,6 +3,8 @@
 # Do not change BASE_URL under no circumstances.
 BASE_URL = 'http://dedeco.me'
 BASE_URL = 'http://127.0.0.1'
+VERSION = 1.0
+RELEASE_DATE = "2018-06-23"
 
 # If you want faster loading, but with some visual glitches at the startup (words rapidly changing) while it loads,
 # change this to "True" (no quotes, capitalized), else, leave it as "False"
