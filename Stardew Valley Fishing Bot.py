@@ -47,6 +47,7 @@ class Widget(QMainWindow):
         password = output['Password']
         zoom = int(output["Zoom"])
         ignore_login = output['Ignore Login Popup']
+        first_time = output['Fist time']
 
     logger.info('Config file loaded')
 
@@ -214,7 +215,15 @@ class Widget(QMainWindow):
 
 
 
-    def welcome_message(self) -> object:
+    def welcome_message(self):
+
+        self.first_time = False
+        with open("config.json", 'r') as f:
+            output = json.loads(f.read())
+            output["Fist time"] = self.first_time
+
+        with open("config.json", "w") as f:
+            json.dump(output, f)
 
         msg_box = QMessageBox()
         msg_box.setText("<strong>Thank you for helping the project!</strong>")
@@ -228,7 +237,7 @@ class Widget(QMainWindow):
         self.used_key = settings['key'].upper()
         self.zoom = settings['zoom']
 
-        with open ("config.json", 'r') as f:
+        with open("config.json", 'r') as f:
             output = json.loads(f.read())
             output["Resolution"] = self.res
             output["Zoom"] = self.zoom
@@ -814,8 +823,9 @@ class Widget(QMainWindow):
                 self.accnt_manager = AccountManager()
                 self.accnt_manager.user_logged.connect(self.user_has_logged)
                 self.accnt_manager.rejected.connect(self.login_rejected)
-                self.accnt_manager.user_logged.connect(self.welcome_message)# display welcome message
-                self.accnt_manager.rejected.connect(self.welcome_message)# display welcome message
+                if self.first_time:
+                    self.accnt_manager.user_logged.connect(self.welcome_message)# display welcome message
+                    self.accnt_manager.rejected.connect(self.welcome_message)# display welcome message
                 self.accnt_manager.exec_()
 
             else:
