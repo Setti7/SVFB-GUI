@@ -1,38 +1,39 @@
-# Done by Frannecklp
-
+from ctypes import windll
 import cv2
 import numpy as np
 import win32gui, win32ui, win32con, win32api
 
 
-def grab_screen(region=None):
-    hwin = win32gui.GetDesktopWindow()
+def grab_screen():
+    hwnd = win32gui.FindWindow(None, 'Stardew Valley')
+    hwndDC = win32gui.GetWindowDC(hwnd)
+    mfcDC = win32ui.CreateDCFromHandle(hwndDC)
+    saveDC = mfcDC.CreateCompatibleDC()
+    if hwnd:
+        # print("Game found!")
 
-    if region:
-        left, top, x2, y2 = region
-        width = x2 - left + 1
-        height = y2 - top + 1
+        left, top, right, bot = win32gui.GetWindowRect(hwnd)
+        w = right - left
+        h = bot - top
+
+        saveBitMap = win32ui.CreateBitmap()
+        saveBitMap.CreateCompatibleBitmap(mfcDC, w, h)
+
+        saveDC.SelectObject(saveBitMap)
+
+        bmpinfo = saveBitMap.GetInfo()
+        bmpstr = saveBitMap.GetBitmapBits(True)
+
+        img = np.fromstring(bmpstr, dtype='uint8')
+        img.shape = (bmpinfo['bmHeight'], bmpinfo['bmWidth'], 4)
+
+        win32gui.DeleteObject(saveBitMap.GetHandle())
+
+        saveDC.DeleteDC()
+        mfcDC.DeleteDC()
+        win32gui.ReleaseDC(hwnd, hwndDC)
+
+        return cv2.cvtColor(img, cv2.COLOR_BGRA2GRAY) , w, h
     else:
-        width = win32api.GetSystemMetrics(win32con.SM_CXVIRTUALSCREEN)
-        height = win32api.GetSystemMetrics(win32con.SM_CYVIRTUALSCREEN)
-        left = win32api.GetSystemMetrics(win32con.SM_XVIRTUALSCREEN)
-        top = win32api.GetSystemMetrics(win32con.SM_YVIRTUALSCREEN)
+        print("Game not Found!!!")
 
-    hwindc = win32gui.GetWindowDC(hwin)
-    srcdc = win32ui.CreateDCFromHandle(hwindc)
-    memdc = srcdc.CreateCompatibleDC()
-    bmp = win32ui.CreateBitmap()
-    bmp.CreateCompatibleBitmap(srcdc, width, height)
-    memdc.SelectObject(bmp)
-    memdc.BitBlt((0, 0), (width, height), srcdc, (left, top), win32con.SRCCOPY)
-
-    signedIntsArray = bmp.GetBitmapBits(True)
-    img = np.fromstring(signedIntsArray, dtype='uint8')
-    img.shape = (height, width, 4)
-
-    srcdc.DeleteDC()
-    memdc.DeleteDC()
-    win32gui.ReleaseDC(hwin, hwindc)
-    win32gui.DeleteObject(bmp.GetHandle())
-
-    return cv2.cvtColor(img, cv2.COLOR_BGRA2GRAY)

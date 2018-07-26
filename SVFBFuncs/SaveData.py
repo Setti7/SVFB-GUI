@@ -86,8 +86,8 @@ class SaveData(QObject):
 
         while self.run:
 
-            res_x, res_y = self.res
-            screen = grabscreen.grab_screen(region=(0, 40, res_x, res_y+40 )) # Return gray screen
+            #res_x, res_y = self.res
+            screen, res_x, res_y = grabscreen.grab_screen() # Return gray screen
 
             # screen = cv2.resize(screen, None, fx=0.3, fy=0.3) # TODO: using smaller img for less space used
 
