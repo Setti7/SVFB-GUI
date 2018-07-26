@@ -9,13 +9,25 @@ from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot
 from PyQt5.QtWidgets import QMessageBox
 from PyQt5.QtGui import QIcon
 from SVFBFuncs.Globals import BASE_URL
-
+import os
 
 class CheckForUpdates(QObject):
     update_text = pyqtSignal(dict)
+    if os.path.isfile("config.json"):
+        with open("config.json", "r") as f:
+            output = json.loads(f.read())
+            version = output['Version']
+            date = datetime.datetime.strptime(output['Date'], '%Y-%m-%d')
 
-    with open("config.json", "r") as f:
-        output = json.loads(f.read())
+    else:
+        print("config file missing. Creating new one")
+        default_json = {"Version": 1.0, "Date": "2018-06-23", "Used key": "C", "Resolution": "1280x720", "Zoom": "-4",
+                        "User": "", "Password": "", "Ignore Login Popup": False, "Fist time": False}
+
+        with open("config.json", "w") as f:
+            f.write(json.dumps(default_json))
+
+        output = default_json
         version = output['Version']
         date = datetime.datetime.strptime(output['Date'], '%Y-%m-%d')
 

@@ -35,19 +35,38 @@ class Widget(QMainWindow):
     logger.info("---------- STARTED ----------")
     stop_signal = pyqtSignal() # sinaliza que o usuário clicou em "Stop Data Colleting"
     logout_signal = pyqtSignal()
+    if(os.path.isfile("config.json")):
+        with open("config.json", "r") as f:
+            logger.info('Loading config file')
+            output = json.loads(f.read())
+            version = output['Version']
+            date = datetime.datetime.strptime(output['Date'], '%Y-%m-%d')
+            used_key = output["Used key"]
+            res = output["Resolution"]
+            username = output['User']
+            password = output['Password']
+            zoom = int(output["Zoom"])
+            ignore_login = output['Ignore Login Popup']
+            first_time = output['Fist time']
+    else:
+        print("config file missing. Creating new one")
+        default_json = {"Version": 1.0, "Date": "2018-06-23", "Used key": "C", "Resolution": "1280x720", "Zoom": "-4", "User": "", "Password": "", "Ignore Login Popup": false, "Fist time": false}
 
-    with open("config.json", "r") as f:
-        logger.info('Loading config file')
-        output = json.loads(f.read())
-        version = output['Version']
-        date = datetime.datetime.strptime(output['Date'], '%Y-%m-%d')
-        used_key = output["Used key"]
-        res = output["Resolution"]
-        username = output['User']
-        password = output['Password']
-        zoom = int(output["Zoom"])
-        ignore_login = output['Ignore Login Popup']
-        first_time = output['Fist time']
+        with open("config.json", "w") as f:
+            f.write(json.dumps(default_json))
+            output = default_json
+            version = output['Version']
+            date = datetime.datetime.strptime(output['Date'], '%Y-%m-%d')
+            used_key = output["Used key"]
+            res = output["Resolution"]
+            username = output['User']
+            password = output['Password']
+            zoom = int(output["Zoom"])
+            ignore_login = output['Ignore Login Popup']
+            first_time = output['Fist time']
+
+
+
 
     logger.info('Config file loaded')
 
