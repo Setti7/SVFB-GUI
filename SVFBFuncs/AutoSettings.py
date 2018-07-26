@@ -5,18 +5,26 @@ import xml.etree.ElementTree as ET
 
 class AutoSettings:
 
-    def get_zoom(self):  # not fully implemented yet
-        zooms = []
-        path = os.getenv('APPDATA') + "\StardewValley\Saves"
-        saves = os.listdir(path)
-        for save in saves:
-            with open(path + "\\" + save + "\\" + save, "r") as f:
-                content = f.read()
-                zoom = content.split('<zoomLevel>', 1)[-1]
-                zoom = zoom.split('</zoomLevel>', 1)[0]
-                zooms.append(zoom)
+    def get_zoom(self) -> dict:
+        saves_folders = os.path.join(os.getenv('APPDATA'), "StardewValley\Saves")
 
-        return zooms
+        char_folders = [save_folder for save_folder in os.listdir(saves_folders)]
+
+        zoom_dict = {}
+        for character in char_folders:
+
+            save_file = os.path.join(saves_folders, character) + f"\\{character}"
+
+            tree = ET.parse(save_file)
+
+            char_name = tree.find("player/name").text
+
+            for zoom_level in tree.iter(tag='zoomLevel'):
+
+                zoom_dict[char_name] = float(zoom_level.text)
+
+        return zoom_dict
+
 
     def get_res(self) -> dict:
         """
