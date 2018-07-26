@@ -212,14 +212,16 @@ class Widget(QMainWindow):
             self.loading_dialog.close()
             self.show()
 
-            if self.call_first_time_running:
-                msg_box = QMessageBox()
-                msg_box.setText("<strong>Thank you for helping the project!</strong>")
-                msg_box.setInformativeText("Don't forget to configure your settings so the application can work correctly.")
-                msg_box.setWindowTitle("Welcome!")
-                msg_box.setWindowIcon(QtGui.QIcon('media\\logo\\logo.ico'))
-                msg_box.exec_()
 
+
+    def welcome_message(self) -> object:
+
+        msg_box = QMessageBox()
+        msg_box.setText("<strong>Thank you for helping the project!</strong>")
+        msg_box.setInformativeText("Don't forget to configure your settings so the application can work correctly.")
+        msg_box.setWindowTitle("Welcome!")
+        msg_box.setWindowIcon(QtGui.QIcon('media\\logo\\logo.ico'))
+        msg_box.exec_()
     def update_settings(self, settings):
 
         self.res = settings['resolution']
@@ -812,6 +814,8 @@ class Widget(QMainWindow):
                 self.accnt_manager = AccountManager()
                 self.accnt_manager.user_logged.connect(self.user_has_logged)
                 self.accnt_manager.rejected.connect(self.login_rejected)
+                self.accnt_manager.user_logged.connect(self.welcome_message)# display welcome message
+                self.accnt_manager.rejected.connect(self.welcome_message)# display welcome message
                 self.accnt_manager.exec_()
 
             else:
@@ -930,6 +934,8 @@ class Widget(QMainWindow):
         runtime = (stop_time-start_time).total_seconds()
         logger.info('---------- CLOSED. Runtime: %ss ----------' % runtime)
         event.accept() #.ignore
+
+
 
 if __name__ == '__main__':
     start_time = datetime.datetime.now()
