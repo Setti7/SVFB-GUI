@@ -1,8 +1,9 @@
 {
-  "Used key": "S",
+  "Used key": "C",
   "Resolution": "1280x720",
-  "Zoom": "-4",
-  "User": "admin",
-  "Password": "senha123",
-  "Ignore Login Popup": false
+  "Zoom": 0,
+  "User": "",
+  "Password": "",
+  "Ignore Login Popup": true,
+  "First Time Running": false
 }

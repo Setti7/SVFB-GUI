@@ -10,13 +10,9 @@ from PyQt5.QtWidgets import QMessageBox
 from PyQt5.QtGui import QIcon
 from SVFBFuncs.Globals import BASE_URL, VERSION, RELEASE_DATE
 
+
 class CheckForUpdates(QObject):
     update_text = pyqtSignal(dict)
-    if os.path.isfile("config.json"):
-        with open("config.json", "r") as f:
-            output = json.loads(f.read())
-            version = output['Version']
-            date = datetime.datetime.strptime(output['Date'], '%Y-%m-%d')
 
     # Version details:
     version = VERSION
@@ -43,33 +39,29 @@ class CheckForUpdates(QObject):
                     critical = True
 
             changes = "Changes since v{} (your current version):\n".format(self.version) + "\n".join(changes)
-            if len(output["Version Control"]): #checks for null version
-                last_info = output["Version Control"][0]
-                output["Version Control"][0]
-                date = datetime.datetime.strptime(last_info['Date'], '%Y-%m-%d')
-                if self.date < date:
-                    self.update_text.emit(
-                        {
-                            "Update": True,
-                            "Current Version": self.version,
-                            "New Version": version,
-                            "Changes": changes,
-                            "Critical": critical
-                        })
-                    logger.info("Update found")
-                else:
-                    self.update_text.emit({"Update": False})
-                    logger.info("No updates available")
+
+            last_info = output["Version Control"][0]
+            version = last_info['Version']
+            date = datetime.datetime.strptime(last_info['Date'], '%Y-%m-%d')
+
+            if self.date < date:
+                self.update_text.emit(
+                    {
+                        "Update": True,
+                        "Current Version": self.version,
+                        "New Version": version,
+                        "Changes": changes,
+                        "Critical": critical
+                     })
+                logger.info("Update found")
             else:
-                print("Error, Version Control is null")
                 self.update_text.emit({"Update": False})
-                logger.info("Cannot check for updates")
-                last_info = 'null'
-
-
-
-
+                logger.info("No updates available")
 
         except URLError:
             self.update_text.emit({"Update": False})
             logger.warning("Offline, could not check updates")
+
+        except Exception as e:
+            self.update_text.emit({"Update": False})
+            logger.error(e)

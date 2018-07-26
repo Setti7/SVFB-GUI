@@ -2,14 +2,13 @@ import logging
 logger = logging.getLogger(__name__)
 logging.basicConfig(filename='log.log', level=logging.INFO, format='%(levelname)s (%(name)s):\t%(asctime)s \t %(message)s', datefmt='%d/%m/%Y %I:%M:%S')
 
-#TODO: criar conta não envia automaticamente. Parece que não tem um sessão ativa online pra enviar
-
 import json, datetime, random
 import sys, numpy as np, os, webbrowser
 from PyQt5.QtWidgets import QWidget, QMainWindow, QApplication, QMessageBox, QDialog, QMenuBar, QAction
 from PyQt5.QtCore import QThread, QObject, pyqtSignal, pyqtSlot, QTimer, Qt
 from PyQt5 import QtGui, QtCore
 from PyQt5.uic import loadUi
+from SVFBFuncs.WelcomeDialog import WelcomeDialog
 from SVFBFuncs.SaveData import SaveData
 from SVFBFuncs.AccountManager import AccountManager
 from SVFBFuncs.CheckForOnlineScore import QuickCheck
@@ -34,55 +33,58 @@ class Widget(QMainWindow):
     logger.info("---------- STARTED ----------")
     stop_signal = pyqtSignal() # sinaliza que o usuário clicou em "Stop Data Colleting"
     logout_signal = pyqtSignal()
-    if(os.path.isfile("config.json")):
+
+    date = datetime.datetime.strptime(RELEASE_DATE, '%Y-%m-%d')
+    version = VERSION
+
+    # Check if all files/folders are present.
+    if not os.path.exists("Data"):
+        os.mkdir("Data")
+
+    if not os.path.exists("Data\\Training Data"):
+        os.mkdir("Data\\Training Data")
+
+    try:
         with open("config.json", "r") as f:
             logger.info('Loading config file')
             output = json.loads(f.read())
-            version = output['Version']
-            date = datetime.datetime.strptime(output['Date'], '%Y-%m-%d')
             used_key = output["Used key"]
             res = output["Resolution"]
             username = output['User']
             password = output['Password']
             zoom = int(output["Zoom"])
             ignore_login = output['Ignore Login Popup']
-            first_time = output['Fist time']
-    else:
-        print("config file missing. Creating new one")
-        default_json = {"Version": 1.0, "Date": "2018-06-23", "Used key": "C", "Resolution": "1280x720", "Zoom": "-4", "User": "", "Password": "", "Ignore Login Popup": false, "Fist time": false}
+            first_time_running =  output['First Time Running']
 
-    date = datetime.datetime.strptime(RELEASE_DATE, '%Y-%m-%d')
-    version = VERSION
+    except Exception as e:
+        logger.error(e)
 
-    with open("config.json", "r") as f:
-        logger.info('Loading config file')
-        output = json.loads(f.read())
+        output = {"Used key": "C",
+                  "Resolution": "1280x720",
+                  "Zoom": 0,
+                  "User": "",
+                  "Password": "",
+                  "Ignore Login Popup": False,
+                  "First Time Running": True}
+
         used_key = output["Used key"]
         res = output["Resolution"]
         username = output['User']
         password = output['Password']
         zoom = int(output["Zoom"])
         ignore_login = output['Ignore Login Popup']
-        first_time = output['Fist time']
+        first_time_running = output['First Time Running']
 
+        with open("config.json", 'w') as f:
+            json.dump(output, f, indent=2)
 
+        logger.info("Fixed config file")
 
 
     logger.info('Config file loaded')
 
     def __init__(self):
         super().__init__()
-
-        # Check if all files/folders are present. If aren't, raise a flag so a pop-up appears when loading is done
-        self.call_first_time_running = False
-        if not os.path.exists("Data"):
-            os.mkdir("Data")
-            self.call_first_time_running = True
-
-        if not os.path.exists("Data\\Training Data"):
-            os.mkdir("Data\\Training Data")
-            self.call_first_time_running = True
-
 
         if self.res == '1280x600': self.res_index = 0
         elif self.res == '1280x720': self.res_index = 1
@@ -169,7 +171,6 @@ class Widget(QMainWindow):
                 zoom=self.zoom
             ))
 
-
         # Defining button/checkbox actions
         self.data_start.clicked.connect(self.data_start_action)
         self.data_stop.clicked.connect(self.data_stop_action)
@@ -227,31 +228,13 @@ class Widget(QMainWindow):
             self.loading_dialog.close()
             self.show()
 
-
-
-    def welcome_message(self):
-
-        self.first_time = False
-        with open("config.json", 'r') as f:
-            output = json.loads(f.read())
-            output["Fist time"] = self.first_time
-
-        with open("config.json", "w") as f:
-            json.dump(output, f)
-
-        msg_box = QMessageBox()
-        msg_box.setText("<strong>Thank you for helping the project!</strong>")
-        msg_box.setInformativeText("Don't forget to configure your settings so the application can work correctly.")
-        msg_box.setWindowTitle("Welcome!")
-        msg_box.setWindowIcon(QtGui.QIcon('media\\logo\\logo.ico'))
-        msg_box.exec_()
     def update_settings(self, settings):
 
         self.res = settings['resolution']
         self.used_key = settings['key'].upper()
         self.zoom = settings['zoom']
 
-        with open("config.json", 'r') as f:
+        with open ("config.json", 'r') as f:
             output = json.loads(f.read())
             output["Resolution"] = self.res
             output["Zoom"] = self.zoom
@@ -297,7 +280,7 @@ class Widget(QMainWindow):
             bug_box.addButton(QMessageBox.Close)
 
             ok = bug_box.addButton(QMessageBox.Ok)
-            ok.clicked.connect(lambda: webbrowser.open(BASE_URL + "/home"))
+            ok.clicked.connect(lambda: webbrowser.open("https://github.com/Setti7/SVFB-GUI/releases"))
             bug_box.exec_()
 
         elif len(msg) > 1000:
@@ -832,15 +815,19 @@ class Widget(QMainWindow):
                 self.accnt_manager = AccountManager()
                 self.accnt_manager.user_logged.connect(self.user_has_logged)
                 self.accnt_manager.rejected.connect(self.login_rejected)
-                if self.first_time:
-                    self.accnt_manager.user_logged.connect(self.welcome_message)# display welcome message
-                    self.accnt_manager.rejected.connect(self.welcome_message)# display welcome message
+
+                if self.first_time_running:
+                    self.accnt_manager.rejected.connect(WelcomeDialog)
+                    self.accnt_manager.user_logged.connect(WelcomeDialog)
+
                 self.accnt_manager.exec_()
 
             else:
                 self.username_label.setText("Not logged")
                 self.username_label_2.setText("Not logged")
                 self.update_score(not_logged=True)
+
+
 
     def login_rejected(self):
 
@@ -953,8 +940,6 @@ class Widget(QMainWindow):
         runtime = (stop_time-start_time).total_seconds()
         logger.info('---------- CLOSED. Runtime: %ss ----------' % runtime)
         event.accept() #.ignore
-
-
 
 if __name__ == '__main__':
     start_time = datetime.datetime.now()

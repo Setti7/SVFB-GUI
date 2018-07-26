@@ -77,7 +77,7 @@ class AccountManager(QDialog):
                     output['Ignore Login Popup'] = False
 
                 with open("config.json", "w") as f:
-                    json.dump(output, f)
+                    json.dump(output, f, indent=2)
 
                 self.user_logged.emit({"Username": username, "Password": password1, "Session": self.client})
                 self.accept()
@@ -120,7 +120,7 @@ class AccountManager(QDialog):
                     output['Ignore Login Popup'] = False
 
                 with open("config.json", "w") as f:
-                    json.dump(output, f)
+                    json.dump(output, f, indent=2)
 
                 self.user_logged.emit({"Username": username, "Password": password, "Session": self.client})
                 self.accept()
