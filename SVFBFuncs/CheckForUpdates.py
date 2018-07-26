@@ -40,24 +40,32 @@ class CheckForUpdates(QObject):
                     critical = True
 
             changes = "Changes since v{} (your current version):\n".format(self.version) + "\n".join(changes)
-
-            last_info = output["Version Control"][0]
-            version = last_info['Version']
-            date = datetime.datetime.strptime(last_info['Date'], '%Y-%m-%d')
-
-            if self.date < date:
-                self.update_text.emit(
-                    {
-                        "Update": True,
-                        "Current Version": self.version,
-                        "New Version": version,
-                        "Changes": changes,
-                        "Critical": critical
-                     })
-                logger.info("Update found")
+            if len(output["Version Control"]): #checks for null version
+                last_info = output["Version Control"][0]
+                output["Version Control"][0]
+                date = datetime.datetime.strptime(last_info['Date'], '%Y-%m-%d')
+                if self.date < date:
+                    self.update_text.emit(
+                        {
+                            "Update": True,
+                            "Current Version": self.version,
+                            "New Version": version,
+                            "Changes": changes,
+                            "Critical": critical
+                        })
+                    logger.info("Update found")
+                else:
+                    self.update_text.emit({"Update": False})
+                    logger.info("No updates available")
             else:
+                print("Error, Version Control is null")
                 self.update_text.emit({"Update": False})
-                logger.info("No updates available")
+                logger.info("Cannot check for updates")
+                last_info = 'null'
+
+
+
+
 
         except URLError:
             self.update_text.emit({"Update": False})
