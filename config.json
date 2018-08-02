@@ -2,8 +2,8 @@
   "Used key": "C",
   "Resolution": "Auto",
   "Zoom": "-4",
-  "User": "",
-  "Password": "",
-  "Ignore Login Popup": true,
-  "First Time Running": false
+  "User": "admin",
+  "Ignore Login Popup": false,
+  "First Time Running": false,
+  "Token": "ebd42f862a421289a790ac891cc737e0da43de8e"
 }

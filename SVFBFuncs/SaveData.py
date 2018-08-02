@@ -22,6 +22,11 @@ def fishing_region(img, region_template_gray, w, h):
 
     loc = np.where(res >= threshold)
 
+    # _, maxVal, _, maxLoc = cv2.minMaxLoc(res)
+    #
+    # if (maxVal > threshold):
+    #     print(maxVal)
+
     for pt in zip(*loc[::-1]):
         # Caso seja encontrado o template matching, será retornado apenas um valor, que é o primeiro ponto aonde houve
         # o match. Seria melhor mudar isso para retornar o valor daonde teve o melhor match.
@@ -72,14 +77,6 @@ class SaveData(QObject):
         logger.info("Training data file created")
         training_data = np.empty(shape=[0, 2])
 
-        # Loading template according to zoom level:
-        logger.info("Loading template image")
-        fishing_region_file = 'media\\Images\\fr {}.png'.format(self.zoom)
-        region_template = cv2.imread(fishing_region_file)
-        # region_template = cv2.resize(region_template, None, fx=0.3, fy=0.3) # TODO: using smaller img for less space used
-        region_template = cv2.cvtColor(region_template, cv2.COLOR_BGR2GRAY)
-        wr, hr = region_template.shape[::-1] # 121, 474
-
         # Variáveis de controle:
         # was_fishing: sinaliza se o frame anterior foi ou não um frame da sessão de pescaria. Caso o mini-game seja
         # detectado, isso é setado para True no final do loop. Assim, no frame seguinte, caso não tenha sido detectado a
@@ -104,7 +101,26 @@ class SaveData(QObject):
                 region = fishing_region(screen[coords[0]:coords[1], coords[2]:coords[3]], region_template, wr, hr) #[y1, y2, x1 + 55, x2 - 35]
 
             else:
-                region = fishing_region(screen, region_template, wr, hr)
+
+                for zoom_level in range(-5, 6):  # looping trough every template
+
+                    fishing_region_file = 'media\\Images\\fr {}g.png'.format(zoom_level)
+                    region_template = cv2.imread(fishing_region_file)
+
+                    region_template = cv2.cvtColor(region_template, cv2.COLOR_BGR2GRAY)
+                    wr, hr = region_template.shape[::-1]  # 121, 474
+                    # print(f"Dimensions: {hr}x{wr}")
+                    print(f"Testando zoom: {zoom_level}")
+
+                    region = fishing_region(screen, region_template, wr, hr)
+
+                    if region['Detected']:
+                        self.zoom = zoom_level
+                        print(f"Região detectada com zoom: {self.zoom}")
+                        exit(1)
+
+                #TODO: Add zoom detection here
+                # region = fishing_region(screen, region_template, wr, hr)
 
 
             if region["Detected"]:
@@ -168,6 +184,8 @@ class SaveData(QObject):
 
         # Caso o usuário clique em "Stop" na GUI
         self.finished.emit()
+
+
 
     def stop(self):
         self.run = False

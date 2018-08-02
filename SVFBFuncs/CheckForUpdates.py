@@ -8,7 +8,7 @@ from urllib.error import URLError
 from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot
 from PyQt5.QtWidgets import QMessageBox
 from PyQt5.QtGui import QIcon
-from SVFBFuncs.Globals import BASE_URL, VERSION, RELEASE_DATE
+from SVFBFuncs.Globals import VERSION, RELEASE_DATE, VERSION_CONTROL_URL
 
 
 class CheckForUpdates(QObject):
@@ -25,7 +25,7 @@ class CheckForUpdates(QObject):
     def do_work(self):
         try:
             logger.info("Checking updates")
-            data = urlopen(BASE_URL + "/api/version-control").read()
+            data = urlopen(VERSION_CONTROL_URL).read()
             output = json.loads(data)
 
             changes = []

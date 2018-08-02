@@ -3,7 +3,7 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(filename='log.log', level=logging.INFO, format='%(levelname)s (%(name)s):\t%(asctime)s \t %(message)s', datefmt='%d/%m/%Y %I:%M:%S')
 
 import json, datetime, random
-import sys, numpy as np, os, webbrowser
+import sys, numpy as np, os, webbrowser, requests
 from PyQt5.QtWidgets import QWidget, QMainWindow, QApplication, QMessageBox, QDialog, QMenuBar, QAction
 from PyQt5.QtCore import QThread, QObject, pyqtSignal, pyqtSlot, QTimer, Qt
 from PyQt5 import QtGui, QtCore
@@ -16,7 +16,7 @@ from SVFBFuncs.LoginWorker import LoginWorker
 from SVFBFuncs.SendFiles import SendData
 from SVFBFuncs.Loading import Loading
 from SVFBFuncs.CheckForUpdates import CheckForUpdates
-from SVFBFuncs.Globals import DEV, BASE_URL, VERSION, RELEASE_DATE
+from SVFBFuncs.Globals import DEV, VERSION, RELEASE_DATE, RANKING_URL, BUG_REPORT_URL, HOME_PAGE_URL
 from SVFBFuncs.Settings import Settings
 
 import traceback, sys
@@ -51,10 +51,10 @@ class Widget(QMainWindow):
             used_key = output["Used key"]
             res = output["Resolution"]
             username = output['User']
-            password = output['Password']
             zoom = int(output["Zoom"])
             ignore_login = output['Ignore Login Popup']
             first_time_running =  output['First Time Running']
+            token = output['Token']
 
     except Exception as e:
         logger.error(e)
@@ -63,17 +63,18 @@ class Widget(QMainWindow):
                   "Resolution": "1280x720",
                   "Zoom": 0,
                   "User": "",
-                  "Password": "",
                   "Ignore Login Popup": False,
-                  "First Time Running": True}
+                  "First Time Running": True,
+                  "Token": ""
+        }
 
         used_key = output["Used key"]
         res = output["Resolution"]
         username = output['User']
-        password = output['Password']
         zoom = int(output["Zoom"])
         ignore_login = output['Ignore Login Popup']
         first_time_running = output['First Time Running']
+        token = output['Token']
 
         with open("config.json", 'w') as f:
             json.dump(output, f, indent=2)
@@ -191,7 +192,6 @@ class Widget(QMainWindow):
         self.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowCloseButtonHint | Qt.WindowMinimizeButtonHint)
 
         # Bug Report Tab
-        self.contact_email.setVisible(False)
         self.send_message_btn.clicked.connect(self.send_message)
 
         # Bot Tab
@@ -210,7 +210,7 @@ class Widget(QMainWindow):
         self.login_btn.setVisible(False)
 
         visit_ranking = self.menu.addAction('Ranking')
-        visit_ranking.triggered.connect(lambda: webbrowser.open(BASE_URL + "/ranking"))
+        visit_ranking.triggered.connect(lambda: webbrowser.open(RANKING_URL))
 
         website = self.menu.addAction('GitHub')
         website.triggered.connect(lambda: webbrowser.open("https://github.com/Setti7/SVFB-GUI"))
@@ -298,44 +298,32 @@ class Widget(QMainWindow):
 
         else:
 
-            user = self.username
             self.message_text.clear()
 
-            if self.contact_me.isChecked():
-                contact = self.contact_email.text()
-            else:
-                contact = False
-
-            upload_url = BASE_URL + "/api/bug-report"
-
             try:
-                self.session.get(upload_url)
-                csrftoken = self.session.cookies['csrftoken']  # get ranking page crsf token
+
                 data = {
-                    'csrfmiddlewaretoken': csrftoken,
                     'message': msg,
-                    'user': user,
-                    'contact': contact,
+                    'user': self.username,
                     'version': self.version,
                 }
 
-                response = self.session.post(upload_url, data=data)
+                headers = {'Authorization': f'Token {self.token}'}
 
-                if response.status_code == 404:
-                    self.message_status_label.setText("There was an error while sending!")
-                    self.message_status_label.setStyleSheet("color: #dc3545;")
+                response = requests.post(BUG_REPORT_URL, data=data, headers=headers)
+
+                result = json.loads(response.text)
+
+
+                if result['success']:
+
+                    self.message_status_label.setText("Message successfully sent!")
+                    self.message_status_label.setStyleSheet("color: #28a745;")
 
                 else:
-
-                    result = json.loads(response.text)
-
-                    if result['success']:
-                        self.message_status_label.setText("Message successfully sent!")
-                        self.message_status_label.setStyleSheet("color: #28a745;")
-
-                    else:
-                        self.message_status_label.setText("There was an error while sending!")
-                        self.message_status_label.setStyleSheet("color: #dc3545;")
+                    logger.error(f"Error while sending message: {result['error']}")
+                    self.message_status_label.setText("There was an error while sending!")
+                    self.message_status_label.setStyleSheet("color: #dc3545;")
 
                 self.timer_msg = QTimer()
                 self.timer_msg.timeout.connect(self.message_status_label.clear)
@@ -377,7 +365,7 @@ class Widget(QMainWindow):
 
         # Thread:
         self.login_thread = QThread()
-        self.login_worker = LoginWorker(self.username, self.password)
+        self.login_worker = LoginWorker(self.username, self.token)
         self.login_worker.moveToThread(self.login_thread)
 
         self.login_worker.result.connect(self.login_control)
@@ -423,7 +411,7 @@ class Widget(QMainWindow):
 
         # Thread:
         self.login_thread = QThread()
-        self.login_worker = LoginWorker(self.username, self.password)
+        self.login_worker = LoginWorker(self.username, self.token)
         self.login_worker.moveToThread(self.login_thread)
 
         # Finished proccess
@@ -510,7 +498,7 @@ class Widget(QMainWindow):
 
         ok = updateBox.addButton(QMessageBox.Ok)
         ok.setText('Update')
-        ok.clicked.connect(lambda: webbrowser.open(BASE_URL + "/home"))
+        ok.clicked.connect(lambda: webbrowser.open(HOME_PAGE_URL))
         updateBox.exec_()
 
     def update_message_box(self, update_info):
@@ -570,7 +558,7 @@ class Widget(QMainWindow):
                 self.v_label_2.setText("v{} (v{} REQUIRED)".format(self.version, new_version))
 
                 ok = updateBox.addButton(QMessageBox.Ok)
-                ok.clicked.connect(lambda: webbrowser.open(BASE_URL + "/home"))
+                ok.clicked.connect(lambda: webbrowser.open(HOME_PAGE_URL))
                 updateBox.exec_()
                 self.close()
 
@@ -666,7 +654,7 @@ class Widget(QMainWindow):
             try:
                 logger.info("Starting send data thread")
                 self.send_data_thread = QThread()  # Thread criado
-                self.send_data_worker = SendData(session=self.session, version=self.version)
+                self.send_data_worker = SendData(version=self.version, token=self.token, username=self.username)
                 self.send_data_worker.moveToThread(self.send_data_thread)
 
                 self.send_data_worker.status_code.connect(self.auto_send_response_code_controller)
@@ -777,7 +765,7 @@ class Widget(QMainWindow):
             if results['Logged']:
                 logger.info("User successfully logged in")
 
-                self.user_has_logged({"Username": results['Username'], "Password": results['Password'], "Session": results['Session']})
+                self.user_has_logged({"Username": results['Username'], "Token": results['Token'], "Session": results['Session']})
 
             else:
                 # If user has failed to login, keep calling the function until loading stops, so it does not pop up
@@ -806,7 +794,7 @@ class Widget(QMainWindow):
     def login_error(self):
         # when the loading has finished, call the accnt manager pop up if the login failed
         if self.call_accnt_box:
-            logger.warning("Login error")
+            logger.info("Opening account manager")
             self.accnt_timer.stop()
             self.accnt_timer.deleteLater()
 
@@ -827,6 +815,9 @@ class Widget(QMainWindow):
             else:
                 self.username_label.setText("Not logged")
                 self.username_label_2.setText("Not logged")
+                self.username_label.mousePressEvent = None
+                self.username_label_2.mousePressEvent = None
+
                 self.update_score(not_logged=True)
 
 
@@ -835,6 +826,8 @@ class Widget(QMainWindow):
 
         self.username_label.setText("Not logged")
         self.username_label_2.setText("Not logged")
+        self.username_label.mousePressEvent = None
+        self.username_label_2.mousePressEvent = None
 
         self.logout_btn.setVisible(False)
         self.login_btn.setVisible(True)
@@ -852,8 +845,7 @@ class Widget(QMainWindow):
         # Check the online score as soon as possible.
         logger.info("User logged")
         self.username = user_info['Username']
-        self.password = user_info['Password']
-        self.session = user_info['Session']
+        self.token = user_info['Token']
 
         # Checking if there is data to be sent
         if os.listdir('Data\\Training Data'):
@@ -884,7 +876,7 @@ class Widget(QMainWindow):
         # Score Thread initialization
         try:
             self.score_thread = QThread() # Thread criado
-            self.score_worker = QuickCheck(session=self.session) #
+            self.score_worker = QuickCheck(token=self.token, username=self.username) #
             self.score_worker.moveToThread(self.score_thread)
 
             # If logout signal is emmitted, delete the worker and quit then delete the thread too
@@ -913,9 +905,8 @@ class Widget(QMainWindow):
         self.logout_signal.emit()
         logger.info("User logged out")
 
-        self.username = ''
-        self.password = ''
-        self.session = None
+        self.username = None
+        self.token = None
 
         self.username_label.setText("Not logged")
         self.username_label_2.setText("Not logged")
@@ -927,8 +918,8 @@ class Widget(QMainWindow):
 
         with open('config.json', 'r') as f:
             output = json.loads(f.read())
-            output['Password'] = ''
-            output['User'] = ''
+            output['User'] = self.username
+            output['Token'] = self.token
 
         with open('config.json', 'w') as f:
             json.dump(output, f, indent=2)
