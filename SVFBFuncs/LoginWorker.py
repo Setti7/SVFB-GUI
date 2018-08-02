@@ -1,44 +1,43 @@
 import logging
+
 logger = logging.getLogger(__name__)
-logging.basicConfig(filename='log.log', level=logging.INFO, format='%(levelname)s (%(name)s):\t%(asctime)s \t %(message)s', datefmt='%d/%m/%Y %I:%M:%S')
+logging.basicConfig(filename='log.log', level=logging.INFO,
+                    format='%(levelname)s (%(name)s):\t%(asctime)s \t %(message)s', datefmt='%d/%m/%Y %I:%M:%S')
 
 import requests, json
-from PyQt5.QtCore import QThread, QObject, pyqtSignal, pyqtSlot
-from SVFBFuncs.Globals import BASE_URL
+from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot
+from SVFBFuncs.Globals import VALIDATE_TOKEN_URL
 
 
 class LoginWorker(QObject):
     result = pyqtSignal(dict)
 
-    def __init__(self, username, password, parent=None):
+    def __init__(self, username, token, parent=None):
         QObject.__init__(self, parent=parent)
-        self.password = password
         self.username = username
+        self.token = token
 
     @pyqtSlot()
     def do_work(self):
 
-        max_retries = 1  #TODO: change all max_retries to 1
-        login_url = BASE_URL + "/api/login"
+        if self.username != None and self.token != None:
+            try:
+                logger.info("Validating user")
 
-        try:
-            logger.info("Logging user")
-            client = requests.Session()
-            adapter = requests.adapters.HTTPAdapter(max_retries=max_retries)
-            client.mount('http://', adapter)  # client.mount('https://', adapter)
+                response = requests.post(VALIDATE_TOKEN_URL,
+                                         headers={"Authorization": f"Token {self.token}"},
+                                         data={'username': f'{self.username}'})
 
-            client.get(login_url)
-            csrftoken = client.cookies['csrftoken']
-            login_data = {'username': self.username, 'password': self.password, 'csrfmiddlewaretoken': csrftoken}
+                result = json.loads(response.content)
 
-            response = client.post(login_url, data=login_data)
-            result = json.loads(response.content)
+                if result['valid-token']:
+                    self.result.emit({"Logged": True, "Username": self.username, "Token": self.token, "Session": None})
 
-            if result['success']:
-                self.result.emit({"Logged": True, "Username": self.username, "Password": self.password, "Session": client})
+                else:
+                    self.result.emit({"Logged": False})
 
-            else:
-                self.result.emit({"Logged": False})
+            except:
+                self.result.emit({"Offline": True})
 
-        except:
-            self.result.emit({"Offline": True})
+        else:
+            self.result.emit({"Logged": False})

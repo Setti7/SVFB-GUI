@@ -3,9 +3,9 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(filename='log.log', level=logging.INFO, format='%(levelname)s (%(name)s):\t%(asctime)s \t %(message)s', datefmt='%d/%m/%Y %I:%M:%S')
 
 from PyQt5.QtCore import QObject, pyqtSignal
-import os, json
+import os, json, requests
 from uuid import uuid4
-from SVFBFuncs.Globals import BASE_URL
+from SVFBFuncs.Globals import UPLOAD_DATA_URL
 
 
 class SendData(QObject):
@@ -14,32 +14,25 @@ class SendData(QObject):
     # antes de envia-lo para "training_data.npy" (o servidor só aceita arquivos assim, como forma de precaução)
     status_code = pyqtSignal(int)
 
-    def __init__(self, session, version, parent=None):
+    def __init__(self, version, token, username, parent=None):
         QObject.__init__(self, parent=parent)
-        self.client = session
         self.version = version
-
+        self.token = token
+        self.username = username
 
     def send_data(self):
-        upload_url = BASE_URL + "/api/data-upload"
 
         # Caso não tenha arquivos na pasta
         if not os.listdir('Data\\Training Data'):
             logger.warning("Files does not exist, data already sent.")
             self.status_code.emit(-1)
 
-        elif self.client == None:
-            logger.warning("Cannot upload files while offline.")
-            self.status_code.emit(-2)
-
-
         else:
             try:
 
                 # Pra fazer POST precisa do csrftoken cookie antes (não é necessário um para cada envio):
-                self.client.get(upload_url)
-                file_csrftoken = self.client.cookies['csrftoken']
-                file_data = {'csrfmiddlewaretoken': file_csrftoken, 'version': self.version}
+                file_data = {'username': self.username, 'version': self.version}
+                headers = {'Authorization': f'Token {self.token}'}
 
                 logger.info("Sending file")
 
@@ -54,7 +47,7 @@ class SendData(QObject):
                     os.rename(file_path, file_to_send)
 
                     with open(file_to_send, 'rb') as f:
-                        response = self.client.post(upload_url, files={'file': f}, data=file_data)
+                        response = requests.post(UPLOAD_DATA_URL, files={'file': f}, data=file_data, headers=headers)
 
                     result = json.loads(response.text)
                     print("RESULT SEND DATA: ", result)

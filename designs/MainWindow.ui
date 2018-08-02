@@ -36,7 +36,7 @@
     <item row="1" column="0">
      <widget class="QTabWidget" name="tabWidget">
       <property name="currentIndex">
-       <number>0</number>
+       <number>2</number>
       </property>
       <widget class="QWidget" name="bot">
        <attribute name="title">
@@ -668,7 +668,7 @@
              <number>1</number>
             </property>
             <property name="text">
-             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Send me a custom message to hurry up or use it to report bugs if you are cool (don't forget to enter your email in this case).&lt;br/&gt;You can also curse your neighbors here. (max 1000 chars).&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Send me a custom message to hurry up or use it to report bugs if you are cool.&lt;br/&gt;You can also curse your neighbors here. &lt;br/&gt;(max 1000 chars)&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
             </property>
             <property name="scaledContents">
              <bool>false</bool>
@@ -700,30 +700,6 @@
              <string>Write here...</string>
             </property>
            </widget>
-          </item>
-          <item>
-           <layout class="QHBoxLayout" name="horizontalLayout_5">
-            <item>
-             <widget class="QCheckBox" name="contact_me">
-              <property name="text">
-               <string>Contact email</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QLineEdit" name="contact_email">
-              <property name="inputMethodHints">
-               <set>Qt::ImhEmailCharactersOnly</set>
-              </property>
-              <property name="placeholderText">
-               <string>contact email</string>
-              </property>
-              <property name="clearButtonEnabled">
-               <bool>false</bool>
-              </property>
-             </widget>
-            </item>
-           </layout>
           </item>
           <item>
            <widget class="QPushButton" name="send_message_btn">
@@ -794,22 +770,5 @@
   </action>
  </widget>
  <resources/>
- <connections>
-  <connection>
-   <sender>contact_me</sender>
-   <signal>toggled(bool)</signal>
-   <receiver>contact_email</receiver>
-   <slot>setVisible(bool)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>81</x>
-     <y>392</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>165</x>
-     <y>388</y>
-    </hint>
-   </hints>
-  </connection>
- </connections>
+ <connections/>
 </ui>
