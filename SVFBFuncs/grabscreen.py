@@ -21,7 +21,6 @@ def grab_screen(region):
 
 
         else:
-            print("game running")
 
             left, top = rect[0:2]
             width = rect[2] - rect[0]

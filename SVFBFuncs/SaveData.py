@@ -1,6 +1,8 @@
 import logging
+
 logger = logging.getLogger(__name__)
-logging.basicConfig(filename='log.log', level=logging.INFO, format='%(levelname)s (%(name)s):\t%(asctime)s \t %(message)s', datefmt='%d/%m/%Y %I:%M:%S')
+logging.basicConfig(filename='log.log', level=logging.INFO,
+                    format='%(levelname)s (%(name)s):\t%(asctime)s \t %(message)s', datefmt='%d/%m/%Y %I:%M:%S')
 
 from uuid import uuid4
 import numpy as np
@@ -20,33 +22,50 @@ def fishing_region(img, region_template_gray, w, h):
 
     threshold = 0.65
 
-    loc = np.where(res >= threshold)
+    min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
 
-    # _, maxVal, _, maxLoc = cv2.minMaxLoc(res)
-    #
-    # if (maxVal > threshold):
-    #     print(maxVal)
-
-    for pt in zip(*loc[::-1]):
-        # Caso seja encontrado o template matching, será retornado apenas um valor, que é o primeiro ponto aonde houve
-        # o match. Seria melhor mudar isso para retornar o valor daonde teve o melhor match.
-        x1, y1 = pt[0], pt[1]
-        x2, y2 = pt[0] + w, pt[1] + h
-
+    if (max_val > threshold):
+        print(max_val)
+        x1, y1 = max_loc
+        x2, y2 = x1 + w, y1 + h
 
         # TODO: Fix this constants so the image can be resized to 0.3*size
-        coords_list = [y1 - 10, y2 + 10, x1 - 25, x2 + 25] # these number are added to give a little margin for the TM
+        coords_list = [y1 - 5, y2 + 5, x1 - 15, x2 + 15]  # these number are added to give a little margin for the TM
         green_bar_region = img[y1: y2, x1 + 55: x2 - 35]
 
         # Antes de retornar o frame, faz um resize dele pra um tamanho menor, a fim de não ocupar muito espaço em disco
         # Como uma convnet precisa que todas as imagens tenha o mesmo tamanho, talvez seja melhor estabelecer um tamanho
         # fixo aqui, e não um razão de diminuição, como está sendo feito.
-        green_bar_region = cv2.resize(green_bar_region, None, fx=0.3, fy=0.3) # TODO: optimize this resizing
+        green_bar_region = cv2.resize(green_bar_region, None, fx=0.3, fy=0.3)  # TODO: optimize this resizing
 
         return {"Detected": True, "Region": green_bar_region, "Coords": coords_list}
 
-
     # Só roda caso não seja achado a região
+    return {"Detected": False}
+
+
+def auto_zoom(screen) -> dict:
+    """
+    Automatically detects the zoom level
+    """
+
+    for zoom_level in range(-5, 6):  # looping trough every template
+
+        fishing_region_file = 'media\\Images\\fr {}g.png'.format(zoom_level)
+        region_template = cv2.imread(fishing_region_file)
+
+        region_template = cv2.cvtColor(region_template, cv2.COLOR_BGR2GRAY)
+        wr, hr = region_template.shape[::-1]  # 121, 474
+
+        print(f"Dimensions: {hr}x{wr}")
+
+        print(f"Testando zoom: {zoom_level}")
+
+        region = fishing_region(screen, region_template, wr, hr)
+
+        if region['Detected']:
+            return {"Detected": True, "Zoom": zoom_level}
+
     return {"Detected": False}
 
 
@@ -69,6 +88,19 @@ class SaveData(QObject):
 
         self.run = True
 
+    def load_template(self) -> tuple:
+        # Loading template according to zoom level:
+        logger.info("Loading template image")
+
+        fishing_region_file = f'media\\Images\\fr {self.zoom}.png'
+        region_template = cv2.imread(fishing_region_file)
+
+        # region_template = cv2.resize(region_template, None, fx=0.3, fy=0.3) # TODO: using smaller img for less space used
+        region_template = cv2.cvtColor(region_template, cv2.COLOR_BGR2GRAY)
+        wr, hr = region_template.shape[::-1]  # 121, 474
+
+        return region_template, wr, hr
+
     def main(self):
 
         # Unique file name
@@ -76,6 +108,8 @@ class SaveData(QObject):
 
         logger.info("Training data file created")
         training_data = np.empty(shape=[0, 2])
+
+        region_template, wr, hr = self.load_template()
 
         # Variáveis de controle:
         # was_fishing: sinaliza se o frame anterior foi ou não um frame da sessão de pescaria. Caso o mini-game seja
@@ -90,50 +124,34 @@ class SaveData(QObject):
 
         while self.run:
 
-            #res_x, res_y = self.res
-            screen = grabscreen.grab_screen(region=self.region) # Return gray screen
+            # res_x, res_y = self.res
+            screen = grabscreen.grab_screen(region=self.region)  # Return gray screen
 
             # screen = cv2.resize(screen, None, fx=0.3, fy=0.3) # TODO: using smaller img for less space used
 
             # Finds the thin area the fish stays at
             if coords:
                 # If there was found coords, cut the screen size to look again for the template, so it uses less resources
-                region = fishing_region(screen[coords[0]:coords[1], coords[2]:coords[3]], region_template, wr, hr) #[y1, y2, x1 + 55, x2 - 35]
+                region = fishing_region(
+                    screen[coords[0]:coords[1],
+                    coords[2]:coords[3]],
+                    region_template, wr, hr
+                )  # [y1, y2, x1 + 55, x2 - 35]
 
             else:
 
-                for zoom_level in range(-5, 6):  # looping trough every template
-
-                    fishing_region_file = 'media\\Images\\fr {}g.png'.format(zoom_level)
-                    region_template = cv2.imread(fishing_region_file)
-
-                    region_template = cv2.cvtColor(region_template, cv2.COLOR_BGR2GRAY)
-                    wr, hr = region_template.shape[::-1]  # 121, 474
-                    # print(f"Dimensions: {hr}x{wr}")
-                    print(f"Testando zoom: {zoom_level}")
-
-                    region = fishing_region(screen, region_template, wr, hr)
-
-                    if region['Detected']:
-                        self.zoom = zoom_level
-                        print(f"Região detectada com zoom: {self.zoom}")
-                        exit(1)
-
-                #TODO: Add zoom detection here
-                # region = fishing_region(screen, region_template, wr, hr)
-
+                region = fishing_region(screen, region_template, wr, hr)
 
             if region["Detected"]:
                 # Se a área for detectada, salvar na np.array o frame e a o key-press do jogador.
 
                 window = region["Region"]
 
-                key_pressed = key_check(self.key) # return 1 or 0
+                key_pressed = key_check(self.key)  # return 1 or 0
 
-                data = [window, key_pressed] # or data = np.array([key_pressed, window], dtype=object)
+                data = [window, key_pressed]  # or data = np.array([key_pressed, window], dtype=object)
 
                 training_data = np.vstack((training_data, data))
-                method = 'np.vstack'
 
                 was_fishing = True
 
@@ -161,31 +179,46 @@ class SaveData(QObject):
                     # Sinaliza ao main_thread que deve enviar os dados coletados
                     self.send_data.emit()
 
-                else:
-                    print("Not saving!")
-                    logger.debug("Data too small")
-
                 # Necessary to reset the region coordinates after every fishing session.
                 training_data = np.empty(shape=[0, 2])
                 file_name = 'Data\\Training Data\\%s.npy' % uuid4()
                 coords = None
 
-                # Measurements (debug):
-                time_delta = (final_time - initial_time).total_seconds()
-                median_fps = new_frames/time_delta
-                print("Median FPS: {}".format(median_fps))
-                print("ΔTime: {}".format(time_delta))
+                # # Measurements (debug):
+                # time_delta = (final_time - initial_time).total_seconds()
+                # median_fps = new_frames/time_delta
+                # print("Median FPS: {}".format(median_fps))
+                # print("ΔTime: {}".format(time_delta))
+                # method = 'np.vstack'
+                #
+                # with open("Data\\log.txt", 'a') as f:
+                #     f.write("Method: {}\nMedian FPS: {}\ndTime: {}s\nFrames: {}\n\n".format(
+                #         method,
+                #         round(median_fps, 2),
+                #         time_delta, new_frames))
 
-                with open("Data\\log.txt", 'a') as f:
-                    f.write("Method: {}\nMedian FPS: {}\ndTime: {}s\nFrames: {}\n\n".format(
-                        method,
-                        round(median_fps, 2),
-                        time_delta, new_frames))
 
         # Caso o usuário clique em "Stop" na GUI
         self.finished.emit()
 
-
+    # def find_zoom(self, screen):
+    #
+    #     for zoom_level in range(-5, 6):  # looping trough every template
+    #
+    #         fishing_region_file = 'media\\Images\\fr {}g.png'.format(zoom_level)
+    #         region_template = cv2.imread(fishing_region_file)
+    #
+    #         region_template = cv2.cvtColor(region_template, cv2.COLOR_BGR2GRAY)
+    #         wr, hr = region_template.shape[::-1]  # 121, 474
+    #         # print(f"Dimensions: {hr}x{wr}")
+    #         print(f"Testando zoom: {zoom_level}")
+    #
+    #         region = fishing_region(screen, region_template, wr, hr)
+    #
+    #         if region['Detected']:
+    #             self.zoom = zoom_level
+    #             print(f"Região detectada com zoom: {self.zoom}")
+    #             exit(1)
 
     def stop(self):
         self.run = False
