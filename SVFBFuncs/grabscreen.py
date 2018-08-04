@@ -5,17 +5,17 @@ import numpy as np
 import win32gui, win32ui, win32con, win32api
 
 
-def grab_screen(region):
-
+def grab_screen():
 
     hwin = win32gui.FindWindow(None, "Stardew Valley")
 
     if hwin:
         rect = win32gui.GetWindowRect(hwin)
 
-        # If any dimension is negative the game is minimized, so we need to get the resolution from save file
-        if any(i < 0 for i in rect):
+        # If all dimensions are negative the game is minimized
+        if all(i < 0 for i in rect):
 
+            print(rect)
             print("game running minimized")
             return None
 
@@ -37,6 +37,8 @@ def grab_screen(region):
             signedIntsArray = bmp.GetBitmapBits(True)
             img = np.fromstring(signedIntsArray, dtype='uint8')
             img.shape = (height, width, 4)
+
+            # print(f"Top-Left corner: ({left}, {top}). Dimensions: ({width}, {height})")
 
             srcdc.DeleteDC()
             memdc.DeleteDC()

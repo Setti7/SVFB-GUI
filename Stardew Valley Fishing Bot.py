@@ -592,8 +592,8 @@ class Widget(QMainWindow):
         logger.info("Creating data thread")
         self.thread = QThread()
 
-        logger.info("Starting data with: {}, {}, {}".format(self.used_key, self.res, self.zoom))
-        self.worker = SaveData(self.used_key, self.res, self.zoom)
+        logger.info(f"Starting data with: {self.used_key}")
+        self.worker = SaveData(self.used_key)
 
         self.stop_signal.connect(self.worker.stop)  # connect stop signal to worker stop method
         self.worker.moveToThread(self.thread)
