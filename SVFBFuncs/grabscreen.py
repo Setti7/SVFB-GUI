@@ -45,7 +45,7 @@ def grab_screen():
             win32gui.ReleaseDC(hwin, hwindc)
             win32gui.DeleteObject(bmp.GetHandle())
 
-            return cv2.cvtColor(img, cv2.COLOR_BGRA2GRAY)
+            return img
 
     else:
         print("game not running")

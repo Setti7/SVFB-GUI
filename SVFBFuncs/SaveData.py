@@ -10,19 +10,24 @@ import cv2, datetime
 from PyQt5.QtCore import QObject, pyqtSignal
 from SVFBFuncs.getkeys import key_check
 from SVFBFuncs import grabscreen
+from SVFBFuncs.AfterProcessing import find_fish, find_green_rectangle
 
 
-def fishing_region(img, region_template_gray, w, h):
+def fishing_region(img_bgr, region_template_gray, w, h):
     # Função usada para encontrar a área de pesca nos frames. Adaptado do tutorial no site oficial do Opencv
     # img: imagem fonte
     # region_template_gray: template em preto e branco
     # w e h: width e height do template
+
+    img = cv2.cvtColor(img_bgr, cv2.COLOR_BGRA2GRAY)
+
     try:
         res = cv2.matchTemplate(img, region_template_gray, cv2.TM_CCOEFF_NORMED)
 
     except Exception as e:
         print(e)
 
+    # FIXME: Caso o bau apareça, o sistema tem mais chace de não reconhecer. Talvez tenha que diminuir essa constante
     threshold = 0.65
 
     min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
@@ -31,16 +36,23 @@ def fishing_region(img, region_template_gray, w, h):
         x1, y1 = max_loc
         x2, y2 = x1 + w, y1 + h
 
-        # TODO: Fix this constants so the image can be resized to 0.3*size
         coords_list = [y1 - 10, y2 + 10, x1 - 25, x2 + 25]  # these number are added to give a little margin for the TM
-        green_bar_region = img[y1: y2, x1 + 55: x2 - 35]
+
+        x1_cut = round(x1 + 0.4*w)
+        x2_cut = round(x1 + 0.6*w)
+
+        # Pra pegar exatamente a parte em que o peixe sobe e desce. Números calculados pelo photoshop.
+        green_bar_region = img[y1: y2, x1_cut: x2_cut]
+        green_bar_region_bgr = img_bgr[y1: y2, x1_cut: x2_cut]
+        # green_bar_region = img[y1: y2, x1 + 55: x2 - 35]
 
         # Antes de retornar o frame, faz um resize dele pra um tamanho menor, a fim de não ocupar muito espaço em disco
-        # Como uma convnet precisa que todas as imagens tenha o mesmo tamanho, talvez seja melhor estabelecer um tamanho
-        # fixo aqui, e não um razão de diminuição, como está sendo feito.
-        green_bar_region = cv2.resize(green_bar_region, None, fx=0.3, fy=0.3)  # TODO: optimize this resizing
+        # Como uma convnet precisa que todas as imagens tenha o mesmo tamanho, é preciso estabelecer um tamanho fixo
+        # para as imagens. Como no nível -5 de zoom, há a menor área de pesca, fazer o resizing de todos os níveis de
+        # zoom para o tamanho do zoom -5, assim não necessita esticar nenhuma imagem e todos ficam com o mesmo tamanho.
+        green_bar_region = cv2.resize(green_bar_region, (6, 134))
 
-        return {"Detected": True, "Region": green_bar_region, "Coords": coords_list}
+        return {"Detected": True, "Region": green_bar_region, "Coords": coords_list, "BGR Region": green_bar_region_bgr}
 
     # Só roda caso não seja achado a região
     return {"Detected": False}
@@ -93,7 +105,7 @@ class SaveData(QObject):
         while self.run:
 
             # res_x, res_y = self.res
-            screen = grabscreen.grab_screen()  # Return gray screen
+            screen = grabscreen.grab_screen()  # Return BGR screen
 
             if screen is not None:
 
@@ -128,11 +140,14 @@ class SaveData(QObject):
 
                     training_data = np.vstack((training_data, data))
 
+                    # Contants for the next loop
                     was_fishing = True
+                    bgr_screen_last = region["BGR Region"]
 
                     # For the first frame of the detected region, get its coordinates to reduce the area to look for it again
                     if coords is None:
                         print("Found")
+                        bgr_screen_first = region["BGR Region"]
                         coords = region["Coords"]
                         logger.info("Coordinates found: %s" % coords)
                         initial_time = datetime.datetime.now()
@@ -146,13 +161,17 @@ class SaveData(QObject):
 
                     print("Frames analysed: %s" % new_frames)
 
+                    # Apenas salva caso houver mais de 75 frames
                     if new_frames >= 75:
-                        # Apenas salva caso houver mais de 75 frames
-                        print("Saving...")
-                        np.save(file_name, training_data)
 
-                        # Sinaliza ao main_thread que deve enviar os dados coletados
-                        self.send_data.emit()
+                        validated = self.validate(bgr_screen_first, bgr_screen_last)
+
+                        if validated:
+                            np.save(file_name, training_data)
+
+                            # Sinaliza ao main_thread que deve enviar os dados coletados
+                            self.send_data.emit()
+                            print("Session saved!")
 
                     # Necessary to reset the region coordinates after every fishing session.
                     training_data = np.empty(shape=[0, 2])
@@ -162,16 +181,16 @@ class SaveData(QObject):
 
                     # Measurements (debug):
                     time_delta = (final_time - initial_time).total_seconds()
-                    median_fps = new_frames / time_delta
-                    print("Median FPS: {}".format(median_fps))
-                    print("ΔTime: {}".format(time_delta))
+                    median_fps = round(new_frames / time_delta, 2)
+                    print(f"FPS: {median_fps}\n")
                     method = 'np.vstack'
+                    w_img, h_img = window.shape[::-1]
 
                     with open("Data\\log.txt", 'a') as f:
-                        f.write("Method: {}\nMedian FPS: {}\ndTime: {}s\nFrames: {}\n\n".format(
-                            method,
-                            round(median_fps, 2),
-                            time_delta, new_frames))
+                        f.write(
+                            f"Method: {method}\nMedian FPS: {median_fps}\ndTime: {time_delta}s\n"
+                            f"Frames: {new_frames}\nSize: ({w_img}, {h_img})\n\n"
+                        )
 
         # Caso o usuário clique em "Stop" na GUI
         self.finished.emit()
@@ -191,9 +210,102 @@ class SaveData(QObject):
             region = fishing_region(screen, region_template, wr, hr)
 
             if region['Detected']:
+                print(f"Zoom: {zoom_level}")
                 return {"Found": True, "Zoom": zoom_level}
 
         return {"Found": False}
+
+    def validate(self, first_frame, last_frame) -> bool:
+        """
+        Validates the training data, verifying if the fishing session does not have many sequential repeating frames
+        and checks its final result (success/failure).
+
+        Returns False when session failed and True when session is successful
+        """
+        result = find_green_rectangle(last_frame)
+        result_initial = find_green_rectangle(first_frame)
+
+        # To check last frame:
+        # cv2.imshow('LASTFRAME', last_frame)
+        # cv2.waitKey(0)
+        # cv2.destroyAllWindows()
+
+        # Finding the size of the green bar at the start
+        if result_initial['Found']:
+            initial_rect_size = result_initial["Rect Size"]
+        else:
+            print("Initial size not found. Quitting...")
+            return False
+
+        # Finding if the fish is inside the rectangle when the session ends
+        if result['Found']:
+
+            # If there are 2 rectangles found, the fish is obviously inside the area if there is no chest
+            # (TODO: verify chest)
+            if result['Fish Inside']:
+                print("Fish is inside rectangle. This session was a success")
+                return True
+
+            else:
+                # Checking if something is in front of the green bar, making it smaller. If it is the same size as the
+                # first frame, nothing is in front of it, so the fishing failed.
+                if initial_rect_size * 1.1 > result['Rect Size'] and initial_rect_size * 0.9 < result['Rect Size']:
+                    print("Fish is not blocking. Session failed")
+
+                else:
+                    print("Fish or chest is blocking. Finding fish and chest in relation to the green bar height.")
+                    result_fish = find_fish(last_frame)
+
+                    fish_height = result_fish["Center Height"]
+                    rect_height = result['Center Height']
+
+                    # If the fish center high is above the rectangle center height, the fish is above the rectangle.
+                    if fish_height < rect_height:
+                        print("Fish is above")
+
+                        rect_lowest_point = result['Lowest point']
+                        rect_highest_point = rect_lowest_point - initial_rect_size
+
+                        fish_low_point = result_fish["Lowest Point"]
+
+                        # cv2.circle(last_frame, (10, rect_highest_point), 2, (255, 255, 255), 2)
+                        # cv2.circle(last_frame, (10, fish_low_point), 2, (0, 0, 0), 2)
+
+                        # If the fish is above the rectangle, its lowest point should be lower than the rectangle's
+                        # highest point so the fish can be inside it
+                        if fish_low_point >= rect_highest_point:
+                            print("Fish inside")
+                            return True
+
+                        else:
+                            print("Fish outside")
+                            return False
+
+                    else:
+                        print("Fish is bellow")
+
+                        rect_highest_point = result['Highest Point']
+                        rect_lowest_point = rect_highest_point + initial_rect_size
+
+                        fish_low_point = result_fish["Lowest Point"]
+
+                        # cv2.circle(last_frame, (10, rect_lowest_point), 2, (255, 255, 255), 2)
+                        # cv2.circle(last_frame, (10, fish_low_point), 2, (0, 0, 0), 2)
+
+                        # If the fish is bellow the rectangle, its lowest point should be higher than the rectangle's
+                        # lowest point so the fish can be inside it
+                        if fish_low_point <= rect_lowest_point:
+                            print("Fish inside")
+                            return True
+
+                        else:
+                            print("Fish outside")
+                            return False
+
+        else:
+            print("Error finding the green rectangle. This session should be deleted.")
+            return False
+
 
     def stop(self):
         self.run = False

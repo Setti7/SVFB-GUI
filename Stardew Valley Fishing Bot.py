@@ -104,15 +104,6 @@ class Widget(QMainWindow):
                 json.dump(self.output, f, indent=2)
             logger.warning("Config file resolution invalid.")
 
-        print("Zoom -5: aparenta ok\n"
-              "Zoom -4: ok\n"
-              "Zoom -3: apresentou rompimento\n"
-              "Zoom -2: apresentou rompimento\n"
-              "Zoom -1: não lembro\n"
-              "Zoom 0: parece ok\n"
-              "outros: não testei\t"
-              "#003\n")
-
         self.initUI()
 
         # Starting threads for startup verification

@@ -33,39 +33,14 @@ def find_fish(img):
     pass
 
 
-training_data_s1 = np.load('Data/test-res/training_data.npy')
-training_data_s2 = np.load('Data/test-res/training_data_FRNXZLG.npy')
-
-training_data_f1 = np.load('Data/test-res/training_data_sb7I9xj.npy')
-training_data_f2 = np.load('Data/test-res/training_data_y2ZGzZj.npy')
+training_data_s1 = np.load('Data/Training Data/c25dcb81-e639-44ef-a5bd-9e3408c4a84d.npy')
 
 while True:
 
     last_frame_s1 = training_data_s1[-1][0]
-    last_frame_s2 = training_data_s2[-1][0]
 
-    last_frame_f1 = training_data_f1[-1][0]
-    last_frame_f2 = training_data_f2[-1][0]
-
-    edges_s = cv2.Canny(last_frame_s1, 100, 200)
-    edges_f = cv2.Canny(last_frame_f1, 100, 200)
-
-    # For adaptative threshold, blurring is nice
-    blur_s1 = cv2.medianBlur(last_frame_s1, 5)
-    blur_s2 = cv2.medianBlur(last_frame_s2, 5)
-    blur_f1 = cv2.medianBlur(last_frame_f1, 5)
-    blur_f2 = cv2.medianBlur(last_frame_f2, 5)
-
-    thresh_s1 = cv2.adaptiveThreshold(blur_s1, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
-    thresh_s2 = cv2.adaptiveThreshold(blur_s2, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
-    thresh_f1 = cv2.adaptiveThreshold(blur_f1, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
-    thresh_f2 = cv2.adaptiveThreshold(blur_f2, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
-
-    cv2.imshow('Success 1', thresh_s1)
-    cv2.imshow('Success 2', thresh_s2)
-    cv2.imshow('Failure 1', thresh_f1)
-    cv2.imshow('Failure 2', thresh_f2)
+    cv2.imshow('Screen', last_frame_s1)
 
     if cv2.waitKey(25) & 0xFF == ord('q'):
-                cv2.destroyAllWindows()
-                exit()
+        cv2.destroyAllWindows()
+        exit()
