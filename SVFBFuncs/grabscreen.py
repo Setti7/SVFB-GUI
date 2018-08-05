@@ -1,6 +1,8 @@
+import win32gui
+import win32ui
+from ctypes import windll
 import cv2
 import numpy as np
-import win32gui, win32ui, win32con, win32api
 
 def grab_screen():
     e1 = cv2.getTickCount()
@@ -22,6 +24,7 @@ def grab_screen():
             left, top, right, bot = win32gui.GetWindowRect(hwnd)
             w = right - left
             h = bot - top
+
             hwndDC = win32gui.GetWindowDC(hwnd)
             mfcDC = win32ui.CreateDCFromHandle(hwndDC)
             saveDC = mfcDC.CreateCompatibleDC()
@@ -31,14 +34,13 @@ def grab_screen():
 
             saveDC.SelectObject(saveBitMap)
 
+            result = windll.user32.PrintWindow(hwnd, saveDC.GetSafeHdc(), 1)
+
             bmpinfo = saveBitMap.GetInfo()
             bmpstr = saveBitMap.GetBitmapBits(True)
 
             img = np.fromstring(bmpstr, dtype='uint8')
             img.shape = (bmpinfo['bmHeight'], bmpinfo['bmWidth'], 4)
-            win32gui.DeleteObject(saveBitMap.GetHandle())
-            saveDC.DeleteDC()
-            mfcDC.DeleteDC()
             win32gui.ReleaseDC(hwnd, hwndDC)
             e2 = cv2.getTickCount()
             print((e2 - e1) / cv2.getTickFrequency())
