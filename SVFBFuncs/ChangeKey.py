@@ -1,16 +1,22 @@
 import json
-from PyQt5.QtWidgets import QDialog
-from PyQt5.QtCore import pyqtSignal
+
 from PyQt5 import QtGui
+from PyQt5.QtWidgets import QDialog
 from PyQt5.uic import loadUi
 
-class ChangeKey(QDialog):
-    new_key = pyqtSignal(str)
+iconpath = "media\\Images\\use-tool-key.png"
 
-    def __init__(self):
+class ChangeKey(QDialog):
+
+    def __init__(self, key):
         super().__init__()
         self.initUI()
         self.setWindowIcon(QtGui.QIcon('media\\logo\\logo.ico'))
+        self.help_label.setToolTip('<img src="%s">' % (iconpath))
+        self.change_key.setText(key.upper())
+
+        # Variable that holds the new key:
+        self.new_key = ''
 
         self.save_btn.clicked.connect(self.save)
         self.close_btn.clicked.connect(self.close)
@@ -20,13 +26,13 @@ class ChangeKey(QDialog):
         loadUi('designs\\key_used_dialog.ui', self)
 
     def save(self):
+        self.new_key = str(self.change_key.text()).upper()
+
         with open("config.json", "r") as f:
             output = json.loads(f.read())
-            new_key = str(self.change_key.text()).upper()
-            output['Used key'] = new_key
+            output['Used key'] = self.new_key
 
         with open("config.json", "w") as f:
-            json.dump(output, f)
+            json.dump(output, f, indent=2)
 
-        self.new_key.emit(new_key)
-        self.close()
+        self.accept()

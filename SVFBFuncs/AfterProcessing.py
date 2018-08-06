@@ -14,7 +14,7 @@ x_center_calibration_value = 10
 
 def find_green_rectangle(green_bar_win):
     """
-    Image received needs to be in BGR
+    Image parameter needs to be in BGR
     """
 
     # Chose this color scheme because it seemed to be one of the few who worked. BGR2Lab also seems to work.
@@ -95,6 +95,10 @@ def find_green_rectangle(green_bar_win):
 
 
 def find_fish(green_bar_win):
+    """
+    Image parameter needs to ne in BGR
+    """
+
     # If there is no fish found in the image sets this as the height. 400 hundred is at the bottom of the mini-game because point (0, 0) is the top-left corner
     # fish_center_height = 400
     # fish_x_calibration = 0  # 58
@@ -127,7 +131,7 @@ def find_fish(green_bar_win):
             highest_point = int(topmost[1])
 
             fish_center_height = int(np.round((lowest_point + highest_point) / 2, 0))
-            cv2.circle(green_bar_win, (10, fish_center_height), 2, (100, 0, 255), 2)
+            #cv2.circle(green_bar_win, (10, fish_center_height), 2, (100, 0, 255), 2)
 
             return {"Found": True, "Center Height": fish_center_height, "Lowest Point": lowest_point,
                     "Highest Point": highest_point}

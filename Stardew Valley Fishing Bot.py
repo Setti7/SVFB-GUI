@@ -16,8 +16,8 @@ from SVFBFuncs.LoginWorker import LoginWorker
 from SVFBFuncs.SendFiles import SendData
 from SVFBFuncs.Loading import Loading
 from SVFBFuncs.CheckForUpdates import CheckForUpdates
+from SVFBFuncs.ChangeKey import ChangeKey
 from SVFBFuncs.Globals import DEV, VERSION, RELEASE_DATE, RANKING_URL, BUG_REPORT_URL, HOME_PAGE_URL
-from SVFBFuncs.Settings import Settings
 
 import traceback, sys
 
@@ -49,9 +49,7 @@ class Widget(QMainWindow):
             logger.info('Loading config file')
             output = json.loads(f.read())
             used_key = output["Used key"]
-            res = output["Resolution"]
             username = output['User']
-            zoom = int(output["Zoom"])
             ignore_login = output['Ignore Login Popup']
             first_time_running =  output['First Time Running']
             token = output['Token']
@@ -60,8 +58,6 @@ class Widget(QMainWindow):
         logger.error(e)
 
         output = {"Used key": "C",
-                  "Resolution": "1280x720",
-                  "Zoom": 0,
                   "User": "",
                   "Ignore Login Popup": False,
                   "First Time Running": True,
@@ -69,9 +65,7 @@ class Widget(QMainWindow):
         }
 
         used_key = output["Used key"]
-        res = output["Resolution"]
         username = output['User']
-        zoom = int(output["Zoom"])
         ignore_login = output['Ignore Login Popup']
         first_time_running = output['First Time Running']
         token = output['Token']
@@ -86,23 +80,6 @@ class Widget(QMainWindow):
 
     def __init__(self):
         super().__init__()
-
-        if self.res == 'Auto': self.res_index = 0
-        elif self.res == '1280x600': self.res_index = 1
-        elif self.res == '1280x720': self.res_index = 2
-        elif self.res == '1280x760': self.res_index = 3
-        elif self.res == '1280x800': self.res_index = 4
-        elif self.res == '1280x960': self.res_index = 5
-        elif self.res == '1280x1024': self.res_index = 6
-        elif self.res == '1980x1080': self.res_index = 7
-
-        else:
-            self.res = 'Auto'
-            self.res_index = 0
-            with open("config.json", 'w') as f:
-                self.output['Resolution'] = self.res
-                json.dump(self.output, f, indent=2)
-            logger.warning("Config file resolution invalid.")
 
         self.initUI()
 
@@ -149,22 +126,6 @@ class Widget(QMainWindow):
         self.v_label.setText("v{}".format(self.version))
         self.v_label_2.setText("v{}".format(self.version))
 
-        # Bot tab
-        self.settings_label.setText(
-            '<html><head/><body><p align="center"><span style=" font-weight:600;">Current Settings:</span></p><p align="center"><span style=" text-decoration: underline;">Fishing key:</span> {key}<br/><span style=" text-decoration: underline;">Resolution:</span> {res}<br/><span style=" text-decoration: underline;">Zoom:</span> {zoom}</p></body></html>'.format(
-                res=self.res,
-                key=self.used_key,
-                zoom=self.zoom
-            ))
-
-        # Data tab
-        self.settings_label_2.setText(
-            '<html><head/><body><p align="center"><span style=" font-weight:600;">Current Settings:</span></p><p align="center"><span style=" text-decoration: underline;">Fishing key:</span> {key}<br/><span style=" text-decoration: underline;">Resolution:</span> {res}<br/><span style=" text-decoration: underline;">Zoom:</span> {zoom}</p></body></html>'.format(
-                res=self.res,
-                key=self.used_key,
-                zoom=self.zoom
-            ))
-
         # Defining button/checkbox actions
         self.data_start.clicked.connect(self.data_start_action)
         self.data_stop.clicked.connect(self.data_stop_action)
@@ -185,12 +146,6 @@ class Widget(QMainWindow):
         # Bug Report Tab
         self.send_message_btn.clicked.connect(self.send_message)
 
-        # Bot Tab
-        self.settings_dialog = Settings(self.used_key, self.zoom, self.res_index)
-        self.settings_dialog.finished.connect(self.update_settings)
-        self.settings_btn.clicked.connect(self.settings_dialog.exec_)
-        self.settings_btn_2.clicked.connect(self.settings_dialog.exec_)
-
         # Menu
         self.logout_btn = self.menu.addAction('Logout')
         self.logout_btn.triggered.connect(self.logout)
@@ -205,6 +160,9 @@ class Widget(QMainWindow):
 
         website = self.menu.addAction('GitHub')
         website.triggered.connect(lambda: webbrowser.open("https://github.com/Setti7/SVFB-GUI"))
+
+        self.config = self.menu.addAction('Fast Config')
+        self.config.triggered.connect(self.fast_config)
 
         logger.info("UI Initialized")
 
@@ -221,37 +179,12 @@ class Widget(QMainWindow):
             self.loading_dialog.close()
             self.show()
 
-    def update_settings(self, settings):
 
-        self.res = settings['resolution']
-        self.used_key = settings['key'].upper()
-        self.zoom = settings['zoom']
+    def fast_config(self):
 
-        with open ("config.json", 'r') as f:
-            output = json.loads(f.read())
-            output["Resolution"] = self.res
-            output["Zoom"] = self.zoom
-            output["Used key"] = self.used_key
-
-        with open("config.json", "w") as f:
-            json.dump(output, f, indent=2)
-
-        # Changing labels
-        # Bot tab
-        self.settings_label.setText(
-            '<html><head/><body><p align="center"><span style=" font-weight:600;">Current Settings:</span></p><p align="center"><span style=" text-decoration: underline;">Fishing key:</span> {key}<br/><span style=" text-decoration: underline;">Resolution:</span> {res}<br/><span style=" text-decoration: underline;">Zoom:</span> {zoom}</p></body></html>'.format(
-            res=self.res,
-            key=self.used_key,
-            zoom=self.zoom
-        ))
-
-        # Data tab
-        self.settings_label_2.setText(
-            '<html><head/><body><p align="center"><span style=" font-weight:600;">Current Settings:</span></p><p align="center"><span style=" text-decoration: underline;">Fishing key:</span> {key}<br/><span style=" text-decoration: underline;">Resolution:</span> {res}<br/><span style=" text-decoration: underline;">Zoom:</span> {zoom}</p></body></html>'.format(
-                res=self.res,
-                key=self.used_key,
-                zoom=self.zoom
-            ))
+        config_dialog = ChangeKey(self.used_key)
+        if config_dialog.exec_():
+            self.used_key = config_dialog.new_key
 
     # Send message
     def send_message(self):
@@ -561,11 +494,16 @@ class Widget(QMainWindow):
 
         self.data_start.setEnabled(False)
         self.data_stop.setEnabled(True)
-        self.settings_btn.setEnabled(False)
-        self.settings_btn_2.setEnabled(False)
         self.send_btn.setEnabled(False)
         self.logout_btn.setEnabled(False)
         self.login_btn.setEnabled(False)
+
+        # Indicating user about the key being used:
+        self.send_status_label.setText(f'Fishing with "{self.used_key}" key. Change it with "Fast Config".')
+        self.send_status_label.setStyleSheet("color: #007bff;")
+        status_timer = QTimer()
+        status_timer.timeout.connect(self.send_status_label.clear)
+        status_timer.start(5000)
 
         # Icon
         self.icons_label.setMovie(self.dog_getting_up)
@@ -606,13 +544,9 @@ class Widget(QMainWindow):
 
         if hasattr(self, 'bot_running'):
             if not self.bot_running:
-                self.settings_btn.setEnabled(True)
-                self.settings_btn_2.setEnabled(True)
                 self.logout_btn.setEnabled(True)
                 self.login_btn.setEnabled(True)
         else:
-            self.settings_btn.setEnabled(True)
-            self.settings_btn_2.setEnabled(True)
             self.logout_btn.setEnabled(True)
             self.login_btn.setEnabled(True)
 
@@ -692,9 +626,9 @@ class Widget(QMainWindow):
             self.update_score(offline=True)
 
 
-        self.timer = QTimer()
-        self.timer.timeout.connect(self.send_status_label.clear)
-        self.timer.start(5000)
+        timer = QTimer()
+        timer.timeout.connect(self.send_status_label.clear)
+        timer.start(5000)
 
         if hasattr(self, 'data_running'):
             if not self.data_running:
@@ -716,11 +650,9 @@ class Widget(QMainWindow):
             self.bot_btn.setText("Stop")
 
             # Disabling buttons that could cause problems
-            self.settings_btn.setEnabled(False)
-            self.settings_btn_2.setEnabled(False)
             self.logout_btn.setEnabled(False)
             self.login_btn.setEnabled(False)
-            self.dataset_btn.setEnabled(False)
+            self.change_dataset_btn.setEnabled(False)
 
 
         else:
@@ -733,17 +665,13 @@ class Widget(QMainWindow):
             self.bot_btn.setText("Start")
 
             # Enabling buttons
-            self.dataset_btn.setEnabled(True)
+            self.change_dataset_btn.setEnabled(True)
 
             if hasattr(self, 'data_running'):
                 if not self.data_running:
-                    self.settings_btn.setEnabled(True)
-                    self.settings_btn_2.setEnabled(True)
                     self.logout_btn.setEnabled(True)
                     self.login_btn.setEnabled(True)
             else:
-                self.settings_btn.setEnabled(True)
-                self.settings_btn_2.setEnabled(True)
                 self.logout_btn.setEnabled(True)
                 self.login_btn.setEnabled(True)
 
@@ -770,7 +698,9 @@ class Widget(QMainWindow):
             self.update_score(offline=True)
             logger.warning("Offline")
 
-            self.logout_btn.setVisible(True)
+            self.login_btn.setVisible(False)
+            self.logout_btn.setVisible(False)
+
             self.username_label.mousePressEvent = self.retry_connection
             self.username_label.setText(
                 '<a href="#"><span style=" text-decoration: underline; color:#0000ff;">Retry Connection</span></a>'
@@ -781,6 +711,11 @@ class Widget(QMainWindow):
                 '<a href="#"><span style=" text-decoration: underline; color:#0000ff;">Retry Connection</span></a>'
             )
             self.wait_counter = 0
+
+            if self.first_time_running:
+                welcome_dialog = WelcomeDialog()
+                if welcome_dialog.exec_():
+                    self.first_time_running = False
 
     def login_error(self):
         # when the loading has finished, call the accnt manager pop up if the login failed
@@ -797,10 +732,6 @@ class Widget(QMainWindow):
                 self.accnt_manager.user_logged.connect(self.user_has_logged)
                 self.accnt_manager.rejected.connect(self.login_rejected)
 
-                if self.first_time_running:
-                    self.accnt_manager.rejected.connect(WelcomeDialog)
-                    self.accnt_manager.user_logged.connect(WelcomeDialog)
-
                 self.accnt_manager.exec_()
 
             else:
@@ -810,6 +741,11 @@ class Widget(QMainWindow):
                 self.username_label_2.mousePressEvent = None
 
                 self.update_score(not_logged=True)
+
+            if self.first_time_running:
+                welcome_dialog = WelcomeDialog()
+                if welcome_dialog.exec_():
+                    self.first_time_running = False
 
 
 

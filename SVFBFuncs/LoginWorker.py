@@ -6,7 +6,7 @@ logging.basicConfig(filename='log.log', level=logging.INFO,
 
 import requests, json
 from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot
-from SVFBFuncs.Globals import VALIDATE_TOKEN_URL
+from SVFBFuncs.Globals import VALIDATE_TOKEN_URL, HOME_PAGE_URL
 
 
 class LoginWorker(QObject):
@@ -40,4 +40,14 @@ class LoginWorker(QObject):
                 self.result.emit({"Offline": True})
 
         else:
-            self.result.emit({"Logged": False})
+            # Checking internet connection to server
+
+            try:
+                response = requests.get(HOME_PAGE_URL)
+
+                if response.status_code == 200:
+                    self.result.emit({"Logged": False})
+
+            except requests.ConnectionError:
+                self.result.emit({"Offline": False})
+
