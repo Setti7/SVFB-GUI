@@ -4,9 +4,10 @@ import win32con
 import win32api
 from ctypes import windll
 import cv2
+import mss
 import numpy as np
 
-def grab_screen(method=0):
+def grab_screen(method=3):
     hwnd = win32gui.FindWindow(None, "Stardew Valley")
 
     if hwnd:
@@ -92,7 +93,8 @@ def grab_screen(method=0):
                 bmp = win32ui.CreateBitmap()
                 bmp.CreateCompatibleBitmap(srcdc, width, height)
                 memdc.SelectObject(bmp)
-                memdc.BitBlt((0, 0), (width, height), srcdc, (left, top), win32con.SRCCOPY)
+
+                memdc.BitBlt((0, 0), (width, height),srcdc, (left, top), win32con.SRCCOPY)
 
                 signedIntsArray = bmp.GetBitmapBits(True)
                 img = np.fromstring(signedIntsArray, dtype='uint8')
@@ -105,8 +107,25 @@ def grab_screen(method=0):
                 win32gui.ReleaseDC(hwin, hwindc)
                 win32gui.DeleteObject(bmp.GetHandle())
 
+                cv2.imshow('frame', img)
+                cv2.waitKey(0)
+                cv2.destroyAllWindows()
+
 
                 return img
+
+            elif method == 3:#mais um metodo
+                left, top = rect[0:2]
+                width = rect[2] - rect[0]
+                height = rect[3] - rect[1]
+                mon = {"top": top, "left": left, "width": width, "height": height}
+                sct = mss.mss()
+                img = np.asarray(sct.grab(mon))
+
+
+                return img
+
     else:
         print("game not running")
         return None
+
