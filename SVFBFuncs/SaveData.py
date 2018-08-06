@@ -163,17 +163,11 @@ class SaveData(QObject):
                 # Finds the thin area the fish stays at
                 if coords is not None:
 
-                    # If there was found coords, cut the screen size to look again for the template, so it uses less resources
-                    # region = fishing_region(
-                    #     screen[coords[0]:coords[1],
-                    #     coords[2]:coords[3]],
-                    #     region_template, wr, hr
-                    # )
-                    region = fishing_region_opencl(
+                    region = fishing_region(
                         screen[coords[0]:coords[1],
                         coords[2]:coords[3]],
                         region_template, wr, hr
-                    )#gpu
+                    )
 
                 else:
                     region = fishing_region(screen, region_template, wr, hr)
