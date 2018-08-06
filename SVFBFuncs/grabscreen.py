@@ -20,30 +20,33 @@ def grab_screen():
 
 
         else:
-
+            #based on https://docs.microsoft.com/en-us/windows/desktop/api/winuser/nf-winuser-printwindow + https://docs.microsoft.com/en-us/windows/desktop/gdi/capturing-an-image
             left, top, right, bot = win32gui.GetWindowRect(hwnd)
             w = right - left
             h = bot - top
 
-            hwndDC = win32gui.GetWindowDC(hwnd)
-            mfcDC = win32ui.CreateDCFromHandle(hwndDC)
-            saveDC = mfcDC.CreateCompatibleDC()
+            gameHandle = win32gui.GetWindowDC(hwnd)
+            gameDC = win32ui.CreateDCFromHandle(gameHandle)
+
+            memoryDC = gameDC.CreateCompatibleDC()
 
             saveBitMap = win32ui.CreateBitmap()
-            saveBitMap.CreateCompatibleBitmap(mfcDC, w, h)
+            saveBitMap.CreateCompatibleBitmap(gameDC, w, h)
 
-            saveDC.SelectObject(saveBitMap)
+            memoryDC.SelectObject(saveBitMap)
 
-            result = windll.user32.PrintWindow(hwnd, saveDC.GetSafeHdc(), 1)
+            windll.user32.PrintWindow(hwnd, memoryDC.GetSafeHdc(), 1) #printa a tela pra pegar o frame
 
             bmpinfo = saveBitMap.GetInfo()
             bmpstr = saveBitMap.GetBitmapBits(True)
 
             img = np.fromstring(bmpstr, dtype='uint8')
             img.shape = (bmpinfo['bmHeight'], bmpinfo['bmWidth'], 4)
-            win32gui.ReleaseDC(hwnd, hwndDC)
-            e2 = cv2.getTickCount()
-            #print((e2 - e1) / cv2.getTickFrequency())
+
+            win32gui.DeleteObject(saveBitMap.GetHandle())
+            memoryDC.DeleteDC()
+            gameDC.DeleteDC()
+            win32gui.ReleaseDC(hwnd, gameHandle)
             return img
 
     else:
