@@ -13,16 +13,73 @@ from SVFBFuncs import grabscreen
 from SVFBFuncs.AfterProcessing import find_fish, find_green_rectangle
 
 
+def fishing_region_opencl(img_bgr, region_template_gray, w, h):
+    e1 = cv2.getTickCount()
+    imgGpu = cv2.UMat(img_bgr)  # GPU
+    e2 = cv2.getTickCount()
+    print((e2 - e1) / cv2.getTickFrequency())
+    imgGpu = cv2.cvtColor(imgGpu, cv2.COLOR_BGRA2GRAY)  # GPU
+
+    #region_template_grayGpu = cv2.UMat(region_template_gray)
+    try:
+
+        res = cv2.matchTemplate(imgGpu, region_template_gray, cv2.TM_CCOEFF_NORMED)
+
+
+    except Exception as e:
+        print(e)
+
+    threshold = 0.65
+    #img = imgGpu.get()
+    min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
+
+    if (max_val > threshold):
+        x1, y1 = max_loc
+        x2, y2 = x1 + w, y1 + h
+
+        coords_list = [y1 - 10, y2 + 10, x1 - 25, x2 + 25]  # these number are added to give a little margin for the TM
+
+        x1_cut = round(x1 + 0.4 * w)
+        x2_cut = round(x1 + 0.6 * w)
+
+        # Pra pegar exatamente a parte em que o peixe sobe e desce. Números calculados pelo photoshop.
+        #green_bar_region = img[y1: y2, x1_cut: x2_cut]
+        #green_bar_region_bgr = img_bgr[y1: y2, x1_cut: x2_cut]
+        green_bar_region = np.zeros([20,20])
+        green_bar_region_bgr = None
+        # green_bar_region = img[y1: y2, x1 + 55: x2 - 35]
+
+        # Antes de retornar o frame, faz um resize dele pra um tamanho menor, a fim de não ocupar muito espaço em disco
+        # Como uma convnet precisa que todas as imagens tenha o mesmo tamanho, é preciso estabelecer um tamanho fixo
+        # para as imagens. Como no nível -5 de zoom, há a menor área de pesca, fazer o resizing de todos os níveis de
+        # zoom para o tamanho do zoom -5, assim não necessita esticar nenhuma imagem e todos ficam com o mesmo tamanho.
+        #green_bar_region = cv2.resize(green_bar_region, (6, 134))
+
+        return {"Detected": True, "Region": green_bar_region, "Coords": coords_list, "BGR Region": green_bar_region_bgr}
+
+    # Só roda caso não seja achado a região
+    return {"Detected": False}
+    #return fishing_region(img_bgr, region_template_gray, w, h)
+
+
+
 def fishing_region(img_bgr, region_template_gray, w, h):
     # Função usada para encontrar a área de pesca nos frames. Adaptado do tutorial no site oficial do Opencv
     # img: imagem fonte
     # region_template_gray: template em preto e branco
     # w e h: width e height do template
 
+
+
+
     img = cv2.cvtColor(img_bgr, cv2.COLOR_BGRA2GRAY)
 
+
+
     try:
+
         res = cv2.matchTemplate(img, region_template_gray, cv2.TM_CCOEFF_NORMED)
+
 
     except Exception as e:
         print(e)
@@ -31,6 +88,7 @@ def fishing_region(img_bgr, region_template_gray, w, h):
     threshold = 0.65
 
     min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
+
 
     if (max_val > threshold):
         x1, y1 = max_loc
@@ -113,11 +171,16 @@ class SaveData(QObject):
                 if coords is not None:
 
                     # If there was found coords, cut the screen size to look again for the template, so it uses less resources
-                    region = fishing_region(
+                    # region = fishing_region(
+                    #     screen[coords[0]:coords[1],
+                    #     coords[2]:coords[3]],
+                    #     region_template, wr, hr
+                    # )
+                    region = fishing_region_opencl(
                         screen[coords[0]:coords[1],
                         coords[2]:coords[3]],
                         region_template, wr, hr
-                    )
+                    )#gpu
 
                 else:
                     region = fishing_region(screen, region_template, wr, hr)

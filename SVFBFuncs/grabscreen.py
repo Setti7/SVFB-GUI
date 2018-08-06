@@ -43,7 +43,7 @@ def grab_screen():
             img.shape = (bmpinfo['bmHeight'], bmpinfo['bmWidth'], 4)
             win32gui.ReleaseDC(hwnd, hwndDC)
             e2 = cv2.getTickCount()
-            print((e2 - e1) / cv2.getTickFrequency())
+            #print((e2 - e1) / cv2.getTickFrequency())
             return img
 
     else:
