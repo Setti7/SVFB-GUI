@@ -501,9 +501,7 @@ class Widget(QMainWindow):
         # Indicating user about the key being used:
         self.send_status_label.setText(f'Fishing with "{self.used_key}" key. Change it with "Fast Config".')
         self.send_status_label.setStyleSheet("color: #007bff;")
-        status_timer = QTimer()
-        status_timer.timeout.connect(self.send_status_label.clear)
-        status_timer.start(5000)
+        QTimer.singleShot(3000, self.send_status_label.clear)
 
         # Icon
         self.icons_label.setMovie(self.dog_getting_up)
