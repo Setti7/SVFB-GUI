@@ -1,15 +1,16 @@
-import win32con
 import win32gui
 import win32ui
-
+from ctypes import windll
+import cv2
 import numpy as np
 
 
 def grab_screen():
-    hwin = win32gui.FindWindow(None, "Stardew Valley")
+    e1 = cv2.getTickCount()
+    hwnd = win32gui.FindWindow(None, "Stardew Valley")
 
-    if hwin:
-        rect = win32gui.GetWindowRect(hwin)
+    if hwnd:
+        rect = win32gui.GetWindowRect(hwnd)
 
         # If all dimensions are negative the game is minimized
         if all(i < 0 for i in rect):
@@ -20,30 +21,33 @@ def grab_screen():
 
 
         else:
+            # based on https://docs.microsoft.com/en-us/windows/desktop/api/winuser/nf-winuser-printwindow + https://docs.microsoft.com/en-us/windows/desktop/gdi/capturing-an-image
+            left, top, right, bot = win32gui.GetWindowRect(hwnd)
+            w = right - left
+            h = bot - top
 
-            left, top = rect[0:2]
-            width = rect[2] - rect[0]
-            height = rect[3] - rect[1]
+            gameHandle = win32gui.GetWindowDC(hwnd)
+            gameDC = win32ui.CreateDCFromHandle(gameHandle)
 
-            hwindc = win32gui.GetWindowDC(hwin)
-            srcdc = win32ui.CreateDCFromHandle(hwindc)
-            memdc = srcdc.CreateCompatibleDC()
-            bmp = win32ui.CreateBitmap()
-            bmp.CreateCompatibleBitmap(srcdc, width, height)
-            memdc.SelectObject(bmp)
-            memdc.BitBlt((0, 0), (width, height), srcdc, (left, top), win32con.SRCCOPY)
+            memoryDC = gameDC.CreateCompatibleDC()
 
-            signedIntsArray = bmp.GetBitmapBits(True)
-            img = np.fromstring(signedIntsArray, dtype='uint8')
-            img.shape = (height, width, 4)
+            saveBitMap = win32ui.CreateBitmap()
+            saveBitMap.CreateCompatibleBitmap(gameDC, w, h)
 
-            # print(f"Top-Left corner: ({left}, {top}). Dimensions: ({width}, {height})")
+            memoryDC.SelectObject(saveBitMap)
 
-            srcdc.DeleteDC()
-            memdc.DeleteDC()
-            win32gui.ReleaseDC(hwin, hwindc)
-            win32gui.DeleteObject(bmp.GetHandle())
+            windll.user32.PrintWindow(hwnd, memoryDC.GetSafeHdc(), 1)  # printa a tela pra pegar o frame
 
+            bmpinfo = saveBitMap.GetInfo()
+            bmpstr = saveBitMap.GetBitmapBits(True)
+
+            img = np.fromstring(bmpstr, dtype='uint8')
+            img.shape = (bmpinfo['bmHeight'], bmpinfo['bmWidth'], 4)
+
+            win32gui.DeleteObject(saveBitMap.GetHandle())
+            memoryDC.DeleteDC()
+            gameDC.DeleteDC()
+            win32gui.ReleaseDC(hwnd, gameHandle)
             return img
 
     else:

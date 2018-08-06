@@ -9,7 +9,7 @@ import numpy as np
 import cv2, datetime
 from PyQt5.QtCore import QObject, pyqtSignal
 from SVFBFuncs.getkeys import key_check
-from SVFBFuncs import grabscreen
+from SVFBFuncs import grabscreen_original
 from SVFBFuncs.AfterProcessing import find_fish, find_green_rectangle
 
 
@@ -105,7 +105,7 @@ class SaveData(QObject):
         while self.run:
 
             # res_x, res_y = self.res
-            screen = grabscreen.grab_screen()  # Return BGR screen
+            screen = grabscreen_original.grab_screen()  # Return BGR screen
 
             if screen is not None:
 
