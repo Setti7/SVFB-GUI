@@ -69,48 +69,41 @@ def fishing_region(img_bgr, region_template_gray, w, h):
     # region_template_gray: template em preto e branco
     # w e h: width e height do template
 
-
-
-
     img = cv2.cvtColor(img_bgr, cv2.COLOR_BGRA2GRAY)
 
-
-
     try:
-
         res = cv2.matchTemplate(img, region_template_gray, cv2.TM_CCOEFF_NORMED)
+        # FIXME: Caso o bau apareça, o sistema tem mais chace de não reconhecer. Talvez tenha que diminuir essa constante
+        threshold = 0.65
 
+        min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
+
+        if (max_val > threshold):
+            x1, y1 = max_loc
+            x2, y2 = x1 + w, y1 + h
+
+            coords_list = [y1 - 10, y2 + 10, x1 - 25,
+                           x2 + 25]  # these number are added to give a little margin for the TM
+
+            x1_cut = round(x1 + 0.4 * w)
+            x2_cut = round(x1 + 0.6 * w)
+
+            # Pra pegar exatamente a parte em que o peixe sobe e desce. Números calculados pelo photoshop.
+            green_bar_region = img[y1: y2, x1_cut: x2_cut]
+            green_bar_region_bgr = img_bgr[y1: y2, x1_cut: x2_cut]
+            # green_bar_region = img[y1: y2, x1 + 55: x2 - 35]
+
+            # Antes de retornar o frame, faz um resize dele pra um tamanho menor, a fim de não ocupar muito espaço em disco
+            # Como uma convnet precisa que todas as imagens tenha o mesmo tamanho, é preciso estabelecer um tamanho fixo
+            # para as imagens. Como no nível -5 de zoom, há a menor área de pesca, fazer o resizing de todos os níveis de
+            # zoom para o tamanho do zoom -5, assim não necessita esticar nenhuma imagem e todos ficam com o mesmo tamanho.
+            green_bar_region = cv2.resize(green_bar_region, (6, 134))
+
+            return {"Detected": True, "Region": green_bar_region, "Coords": coords_list,
+                    "BGR Region": green_bar_region_bgr}
 
     except Exception as e:
         print(e)
-
-    # FIXME: Caso o bau apareça, o sistema tem mais chace de não reconhecer. Talvez tenha que diminuir essa constante
-    threshold = 0.65
-
-    min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
-
-
-    if (max_val > threshold):
-        x1, y1 = max_loc
-        x2, y2 = x1 + w, y1 + h
-
-        coords_list = [y1 - 10, y2 + 10, x1 - 25, x2 + 25]  # these number are added to give a little margin for the TM
-
-        x1_cut = round(x1 + 0.4*w)
-        x2_cut = round(x1 + 0.6*w)
-
-        # Pra pegar exatamente a parte em que o peixe sobe e desce. Números calculados pelo photoshop.
-        green_bar_region = img[y1: y2, x1_cut: x2_cut]
-        green_bar_region_bgr = img_bgr[y1: y2, x1_cut: x2_cut]
-        # green_bar_region = img[y1: y2, x1 + 55: x2 - 35]
-
-        # Antes de retornar o frame, faz um resize dele pra um tamanho menor, a fim de não ocupar muito espaço em disco
-        # Como uma convnet precisa que todas as imagens tenha o mesmo tamanho, é preciso estabelecer um tamanho fixo
-        # para as imagens. Como no nível -5 de zoom, há a menor área de pesca, fazer o resizing de todos os níveis de
-        # zoom para o tamanho do zoom -5, assim não necessita esticar nenhuma imagem e todos ficam com o mesmo tamanho.
-        green_bar_region = cv2.resize(green_bar_region, (6, 134))
-
-        return {"Detected": True, "Region": green_bar_region, "Coords": coords_list, "BGR Region": green_bar_region_bgr}
 
     # Só roda caso não seja achado a região
     return {"Detected": False}
