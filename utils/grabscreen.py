@@ -85,8 +85,7 @@ def grab_screen(method=0):
                 left, top = rect[0:2]
                 width = rect[2] - rect[0]
                 height = rect[3] - rect[1]
-                hwin = hwnd
-                hwindc = win32gui.GetWindowDC(hwin)
+                hwindc = win32gui.GetWindowDC(hwnd)
                 srcdc = win32ui.CreateDCFromHandle(hwindc)
                 memdc = srcdc.CreateCompatibleDC()
                 bmp = win32ui.CreateBitmap()
@@ -102,7 +101,7 @@ def grab_screen(method=0):
 
                 srcdc.DeleteDC()
                 memdc.DeleteDC()
-                win32gui.ReleaseDC(hwin, hwindc)
+                win32gui.ReleaseDC(hwnd, hwindc)
                 win32gui.DeleteObject(bmp.GetHandle())
 
 

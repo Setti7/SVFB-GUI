@@ -1,16 +1,14 @@
-import logging
-
-logger = logging.getLogger(__name__)
-logging.basicConfig(filename='log.log', level=logging.INFO,
-                    format='%(levelname)s (%(name)s):\t%(asctime)s \t %(message)s', datefmt='%d/%m/%Y %I:%M:%S')
-
+import datetime
 from uuid import uuid4
+
+import cv2
 import numpy as np
-import cv2, datetime
 from PyQt5.QtCore import QObject, pyqtSignal
-from SVFBFuncs.getkeys import key_check
-from SVFBFuncs import grabscreen_original
-from SVFBFuncs.AfterProcessing import find_fish, find_green_rectangle
+
+from utils import grabscreen_original
+from utils.AfterProcessing import find_fish, find_green_rectangle
+from utils.Globals import logger
+from utils.getkeys import key_check
 
 
 def fishing_region_opencl(img_bgr, region_template_gray, w, h):
@@ -20,17 +18,15 @@ def fishing_region_opencl(img_bgr, region_template_gray, w, h):
     print((e2 - e1) / cv2.getTickFrequency())
     imgGpu = cv2.cvtColor(imgGpu, cv2.COLOR_BGRA2GRAY)  # GPU
 
-    #region_template_grayGpu = cv2.UMat(region_template_gray)
+    # region_template_grayGpu = cv2.UMat(region_template_gray)
     try:
-
         res = cv2.matchTemplate(imgGpu, region_template_gray, cv2.TM_CCOEFF_NORMED)
-
 
     except Exception as e:
         print(e)
 
     threshold = 0.65
-    #img = imgGpu.get()
+    # img = imgGpu.get()
     min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
 
     if (max_val > threshold):
@@ -43,9 +39,9 @@ def fishing_region_opencl(img_bgr, region_template_gray, w, h):
         x2_cut = round(x1 + 0.6 * w)
 
         # Pra pegar exatamente a parte em que o peixe sobe e desce. Números calculados pelo photoshop.
-        #green_bar_region = img[y1: y2, x1_cut: x2_cut]
-        #green_bar_region_bgr = img_bgr[y1: y2, x1_cut: x2_cut]
-        green_bar_region = np.zeros([20,20])
+        # green_bar_region = img[y1: y2, x1_cut: x2_cut]
+        # green_bar_region_bgr = img_bgr[y1: y2, x1_cut: x2_cut]
+        green_bar_region = np.zeros([20, 20])
         green_bar_region_bgr = None
         # green_bar_region = img[y1: y2, x1 + 55: x2 - 35]
 
@@ -53,14 +49,13 @@ def fishing_region_opencl(img_bgr, region_template_gray, w, h):
         # Como uma convnet precisa que todas as imagens tenha o mesmo tamanho, é preciso estabelecer um tamanho fixo
         # para as imagens. Como no nível -5 de zoom, há a menor área de pesca, fazer o resizing de todos os níveis de
         # zoom para o tamanho do zoom -5, assim não necessita esticar nenhuma imagem e todos ficam com o mesmo tamanho.
-        #green_bar_region = cv2.resize(green_bar_region, (6, 134))
+        # green_bar_region = cv2.resize(green_bar_region, (6, 134))
 
         return {"Detected": True, "Region": green_bar_region, "Coords": coords_list, "BGR Region": green_bar_region_bgr}
 
     # Só roda caso não seja achado a região
     return {"Detected": False}
-    #return fishing_region(img_bgr, region_template_gray, w, h)
-
+    # return fishing_region(img_bgr, region_template_gray, w, h)
 
 
 def fishing_region(img_bgr, region_template_gray, w, h):
@@ -126,7 +121,6 @@ class SaveData(QObject):
         fishing_region_file = f'media\\Images\\fr {zoom_level}g.png'
         region_template = cv2.imread(fishing_region_file, 0)
 
-        # region_template = cv2.resize(region_template, None, fx=0.3, fy=0.3) # TODO: using smaller img for less space used
         wr, hr = region_template.shape[::-1]  # 121, 474
 
         return region_template, wr, hr
@@ -355,7 +349,6 @@ class SaveData(QObject):
         else:
             print("Error finding the green rectangle. This session should be deleted.")
             return False
-
 
     def stop(self):
         self.run = False

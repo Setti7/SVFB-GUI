@@ -143,7 +143,7 @@ if __name__ == '__main__':
 
     # test images moved to "Other".
     # To test please move this script to the main folder with the test images too.
-    fail_img = cv2.imread('fail.png', 1)
+    fail_img = cv2.imread('fishing_failure.png', 1)
     success_img = cv2.imread('success.png', 1)
     #fail_img = cv2.imread('fish_close_inside.png', 1)
     initial_img = cv2.imread('initial.png', 1)

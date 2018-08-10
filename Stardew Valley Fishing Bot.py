@@ -8,16 +8,16 @@ from PyQt5.QtWidgets import QWidget, QMainWindow, QApplication, QMessageBox, QDi
 from PyQt5.QtCore import QThread, QObject, pyqtSignal, pyqtSlot, QTimer, Qt
 from PyQt5 import QtGui, QtCore
 from PyQt5.uic import loadUi
-from SVFBFuncs.WelcomeDialog import WelcomeDialog
-from SVFBFuncs.SaveData import SaveData
-from SVFBFuncs.AccountManager import AccountManager
-from SVFBFuncs.CheckForOnlineScore import QuickCheck
-from SVFBFuncs.LoginWorker import LoginWorker
-from SVFBFuncs.SendFiles import SendData
-from SVFBFuncs.Loading import Loading
-from SVFBFuncs.CheckForUpdates import CheckForUpdates
-from SVFBFuncs.ChangeKey import ChangeKey
-from SVFBFuncs.Globals import DEV, VERSION, RELEASE_DATE, RANKING_URL, BUG_REPORT_URL, HOME_PAGE_URL
+from utils.WelcomeDialog import WelcomeDialog
+from utils.SaveData import SaveData
+from utils.AccountManager import AccountManager
+from utils.CheckForOnlineScore import QuickCheck
+from utils.LoginWorker import LoginWorker
+from utils.SendFiles import SendData
+from utils.Loading import Loading
+from utils.CheckForUpdates import CheckForUpdates
+from utils.ChangeKey import ChangeKey
+from utils.Globals import DEV, VERSION, RELEASE_DATE, RANKING_URL, BUG_REPORT_URL, HOME_PAGE_URL
 
 import traceback, sys
 

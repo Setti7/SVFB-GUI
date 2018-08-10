@@ -1,13 +1,10 @@
-import logging
-logger = logging.getLogger(__name__)
-logging.basicConfig(filename='log.log', level=logging.INFO, format='%(levelname)s (%(name)s):\t%(asctime)s \t %(message)s', datefmt='%d/%m/%Y %I:%M:%S')
-
+from utils.Globals import logger
 import json, requests
 from PyQt5.QtWidgets import QDialog
 from PyQt5.QtCore import pyqtSignal
 from PyQt5 import QtGui
 from PyQt5.uic import loadUi
-from SVFBFuncs.Globals import BASE_URL, GET_TOKEN_URL, CREATE_ACCOUNT_URL
+from utils.Globals import BASE_URL, GET_TOKEN_URL, CREATE_ACCOUNT_URL
 
 
 class AccountManager(QDialog):

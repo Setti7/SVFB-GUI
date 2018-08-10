@@ -1,10 +1,10 @@
-import logging
-logger = logging.getLogger(__name__)
-logging.basicConfig(filename='log.log', level=logging.INFO, format='%(levelname)s (%(name)s):\t%(asctime)s \t %(message)s', datefmt='%d/%m/%Y %I:%M:%S')
+import json
+import requests
 
-import json, requests
-from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot, QTimer
-from SVFBFuncs.Globals import SCORE_URL
+from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot
+
+from utils.Globals import SCORE_URL
+from utils.Globals import logger
 
 
 class QuickCheck(QObject):
@@ -22,7 +22,8 @@ class QuickCheck(QObject):
         try:
             logger.info("Checking online score")
 
-            response = requests.post(SCORE_URL, headers={"Authorization": f"Token {self.token}"}, data={'username': f'{self.username}'})
+            response = requests.post(SCORE_URL, headers={"Authorization": f"Token {self.token}"},
+                                     data={'username': f'{self.username}'})
 
             output = json.loads(response.text)['score']
 

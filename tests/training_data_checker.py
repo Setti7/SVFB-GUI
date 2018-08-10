@@ -1,6 +1,5 @@
 import numpy as np
-import\
-    os, cv2
+import os, cv2
 
 # for file in os.listdir('Data\\test-res'):
 #     file_path = os.path.join('Data\\test-res', file)
@@ -24,14 +23,8 @@ import\
 #             cv2.destroyAllWindows()
 #             exit()
 
-# Returns rect coordinates
-def find_rect(img):
-    pass
-
-# Return fish coordinates
-def find_fish(img):
-    pass
-
+MAIN_DIR = os.path.dirname(os.path.dirname(__file__))
+os.chdir(MAIN_DIR)
 
 training_data_s1 = np.load('Data/Training Data/c25dcb81-e639-44ef-a5bd-9e3408c4a84d.npy')
 
