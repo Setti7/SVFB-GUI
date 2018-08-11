@@ -1,3 +1,9 @@
+import logging
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(filename='log.log', level=logging.INFO,
+                    format='%(levelname)s (%(name)s):\t%(asctime)s \t %(message)s', datefmt='%d/%m/%Y %I:%M:%S')
+
 import datetime
 from uuid import uuid4
 
@@ -7,7 +13,6 @@ from PyQt5.QtCore import QObject, pyqtSignal
 
 from utils import grabscreen_original
 from utils.AfterProcessing import find_fish, find_green_rectangle
-from utils.Globals import logger
 from utils.getkeys import key_check
 
 

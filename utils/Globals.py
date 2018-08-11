@@ -25,12 +25,3 @@ HOME_PAGE_URL = BASE_URL + "/home"
 # Version info
 VERSION = 1.0
 RELEASE_DATE = "2018-06-23"
-
-# Universal Logger module for all modules
-logger = logging.getLogger(__name__)
-logging.basicConfig(filename='log.log',
-                    level=logging.INFO,
-                    format='%(levelname)s (%(name)s):\t%(asctime)s \t %(message)s',
-                    datefmt='%d/%m/%Y %I:%M:%S'
-                    )
-

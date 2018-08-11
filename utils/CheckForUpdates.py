@@ -1,3 +1,10 @@
+import logging
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(filename='log.log', level=logging.INFO,
+                    format='%(levelname)s (%(name)s):\t%(asctime)s \t %(message)s', datefmt='%d/%m/%Y %I:%M:%S')
+
+
 import datetime
 import json
 from urllib.error import URLError
@@ -6,7 +13,6 @@ from urllib.request import urlopen
 from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot
 
 from utils.Globals import VERSION, RELEASE_DATE, VERSION_CONTROL_URL
-from utils.Globals import logger
 
 
 class CheckForUpdates(QObject):

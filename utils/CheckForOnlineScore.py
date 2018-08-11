@@ -1,10 +1,15 @@
+import logging
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(filename='log.log', level=logging.INFO,
+                    format='%(levelname)s (%(name)s):\t%(asctime)s \t %(message)s', datefmt='%d/%m/%Y %I:%M:%S')
+
 import json
 import requests
 
 from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot
 
 from utils.Globals import SCORE_URL
-from utils.Globals import logger
 
 
 class QuickCheck(QObject):
