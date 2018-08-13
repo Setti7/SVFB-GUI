@@ -15,13 +15,6 @@ import win32api as wapi
 #     return keys
 
 
-def key_check_c():
-    key = "C"
-    if wapi.GetAsyncKeyState(ord(key)):
-        return 1
-    else:
-        return 0
-
 def key_check(key):
     if wapi.GetAsyncKeyState(ord(key)):
         return 1

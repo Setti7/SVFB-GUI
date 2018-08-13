@@ -12,7 +12,7 @@ import numpy as np
 from PyQt5.QtCore import QObject, pyqtSignal
 
 from utils import grabscreen_original
-from utils.AfterProcessing import find_fish, find_green_rectangle
+from utils.AfterProcessing import find_fish, find_green_rectangle, find_chest, verify_too_similar_frames
 from utils.getkeys import key_check
 
 
@@ -73,8 +73,7 @@ def fishing_region(img_bgr, region_template_gray, w, h):
 
     try:
         res = cv2.matchTemplate(img, region_template_gray, cv2.TM_CCOEFF_NORMED)
-        # FIXME: Caso o bau apareça, o sistema tem mais chace de não reconhecer. Talvez tenha que diminuir essa constante
-        threshold = 0.65
+        threshold = 0.60
 
         min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
 
@@ -215,7 +214,7 @@ class SaveData(QObject):
 
                         validated = self.validate(bgr_screen_first, bgr_screen_last)
 
-                        if validated:
+                        if validated and verify_too_similar_frames(training_data):
                             np.save(file_name, training_data)
 
                             # Sinaliza ao main_thread que deve enviar os dados coletados
@@ -274,10 +273,11 @@ class SaveData(QObject):
         result = find_green_rectangle(last_frame)
         result_initial = find_green_rectangle(first_frame)
 
-        # To check last frame:
+        # # To check last frame:
         # cv2.imshow('LASTFRAME', last_frame)
         # cv2.waitKey(0)
         # cv2.destroyAllWindows()
+        # # cv2.imwrite("fishing_chest_blocking.png", last_frame)
 
         # Finding the size of the green bar at the start
         if result_initial['Found']:
@@ -286,11 +286,17 @@ class SaveData(QObject):
             print("Initial size not found. Quitting...")
             return False
 
+        # Checking if there is a chest on the last frame. If there is, just discard this session, as it is too hard to
+        # do the validation.
+        result_chest = find_chest(last_frame)
+        if result_chest['Found']:
+            print("Chest detected. Not saving.")
+            return False
+
         # Finding if the fish is inside the rectangle when the session ends
         if result['Found']:
 
             # If there are 2 rectangles found, the fish is obviously inside the area if there is no chest
-            # (TODO: verify chest)
             if result['Fish Inside']:
                 print("Fish is inside rectangle. This session was a success")
                 return True
