@@ -623,10 +623,7 @@ class Widget(QMainWindow):
             self.send_status_label.setStyleSheet("color: #dc3545;")
             self.update_score(offline=True)
 
-
-        timer = QTimer()
-        timer.timeout.connect(self.send_status_label.clear)
-        timer.start(5000)
+        QTimer.singleShot(5000, self.send_status_label.clear)
 
         if hasattr(self, 'data_running'):
             if not self.data_running:
