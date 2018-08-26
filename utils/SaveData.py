@@ -11,7 +11,7 @@ import cv2
 import numpy as np
 from PyQt5.QtCore import QObject, pyqtSignal
 
-from utils import grabscreen_original
+from utils import grabscreen
 from utils.AfterProcessing import find_fish, find_green_rectangle, find_chest, verify_too_similar_frames
 from utils.getkeys import key_check
 
@@ -154,10 +154,9 @@ class SaveData(QObject):
         while self.run:
 
             # res_x, res_y = self.res
-            screen = grabscreen_original.grab_screen()  # Return BGR screen
+            screen = grabscreen.grab_screen()  # Return BGR screen
 
             if screen is not None:
-
                 # Finds the thin area the fish stays at
                 if coords is not None:
 
