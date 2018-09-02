@@ -2,6 +2,11 @@ import os
 import win32gui
 import xml.etree.ElementTree as ET
 
+"""
+TO BE DELETED:
+There are some code here that could be re-used, but there is not use for it right now, as there were a lot of changes.
+This code is not being used for anything.
+"""
 
 class AutoSettings:
 
