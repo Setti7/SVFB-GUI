@@ -1,1 +1,7 @@
-{"Version": 0.8, "Date": "2018-06-22", "Used key": "C", "Resolution": "1280x720", "Zoom": "-4", "User": "test55", "Password": "senha123", "Ignore Login Popup": false}
+{
+  "Used key": "C",
+  "User": "admin",
+  "Ignore Login Popup": false,
+  "First Time Running": false,
+  "Token": "ebd42f862a421289a790ac891cc737e0da43de8e"
+}

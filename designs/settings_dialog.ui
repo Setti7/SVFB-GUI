@@ -147,9 +147,20 @@
      </item>
      <item>
       <widget class="QComboBox" name="res_selection_2">
+       <property name="editable">
+        <bool>false</bool>
+       </property>
+       <property name="currentText">
+        <string>Auto</string>
+       </property>
        <property name="currentIndex">
         <number>0</number>
        </property>
+       <item>
+        <property name="text">
+         <string>Auto</string>
+        </property>
+       </item>
        <item>
         <property name="text">
          <string>1280x600</string>

@@ -2,27 +2,31 @@ import logging
 logger = logging.getLogger(__name__)
 logging.basicConfig(filename='log.log', level=logging.INFO, format='%(levelname)s (%(name)s):\t%(asctime)s \t %(message)s', datefmt='%d/%m/%Y %I:%M:%S')
 
-#TODO: criar conta não envia automaticamente. Parece que não tem um sessão ativa online pra enviar
-
 import json, datetime, random
-import sys, numpy as np, os, webbrowser
+import sys, numpy as np, os, webbrowser, requests
 from PyQt5.QtWidgets import QWidget, QMainWindow, QApplication, QMessageBox, QDialog, QMenuBar, QAction
 from PyQt5.QtCore import QThread, QObject, pyqtSignal, pyqtSlot, QTimer, Qt
-from PyQt5 import QtGui
+from PyQt5 import QtGui, QtCore
 from PyQt5.uic import loadUi
-from SVFBFuncs.SaveData import SaveData
-from SVFBFuncs.AccountManager import AccountManager
-from SVFBFuncs.CheckForOnlineScore import QuickCheck
-from SVFBFuncs.ChangeKey import ChangeKey
-from SVFBFuncs.LoginWorker import LoginWorker
-from SVFBFuncs.SendFiles import SendData
-from SVFBFuncs.Loading import Loading
-from SVFBFuncs.CheckForUpdates import CheckForUpdates
-from SVFBFuncs.Globals import DEV, BASE_URL
-from SVFBFuncs.Settings import Settings
+from utils.WelcomeDialog import WelcomeDialog
+from utils.SaveData import SaveData
+from utils.AccountManager import AccountManager
+from utils.CheckForOnlineScore import QuickCheck
+from utils.LoginWorker import LoginWorker
+from utils.SendFiles import SendData
+from utils.Loading import Loading
+from utils.CheckForUpdates import CheckForUpdates
+from utils.ChangeKey import ChangeKey
+from utils.Globals import DEV, VERSION, RELEASE_DATE, RANKING_URL, BUG_REPORT_URL, HOME_PAGE_URL
 
-def except_hook(cls, exception, traceback):
-    sys.__excepthook__(cls, exception, traceback)
+import traceback, sys
+
+# https://stackoverflow.com/questions/44447674/traceback-missing-when-exception-encountered-in-pyqt5-code-in-eclipsepydev
+if QtCore.QT_VERSION >= 0x50501:
+    def excepthook(type_, value, traceback_):
+        traceback.print_exception(type_, value, traceback_)
+        QtCore.qFatal('')
+    sys.excepthook = excepthook
 
 
 class Widget(QMainWindow):
@@ -30,57 +34,52 @@ class Widget(QMainWindow):
     stop_signal = pyqtSignal() # sinaliza que o usuário clicou em "Stop Data Colleting"
     logout_signal = pyqtSignal()
 
-    with open("config.json", "r") as f:
-        logger.info('Loading config file')
-        output = json.loads(f.read())
-        version = output['Version']
-        date = datetime.datetime.strptime(output['Date'], '%Y-%m-%d')
+    date = datetime.datetime.strptime(RELEASE_DATE, '%Y-%m-%d')
+    version = VERSION
+
+    # Check if all files/folders are present.
+    if not os.path.exists("Data"):
+        os.mkdir("Data")
+
+    if not os.path.exists("Data\\Training Data"):
+        os.mkdir("Data\\Training Data")
+
+    try:
+        with open("config.json", "r") as f:
+            logger.info('Loading config file')
+            output = json.loads(f.read())
+            used_key = output["Used key"]
+            username = output['User']
+            ignore_login = output['Ignore Login Popup']
+            first_time_running =  output['First Time Running']
+            token = output['Token']
+
+    except Exception as e:
+        logger.error(e)
+
+        output = {"Used key": "C",
+                  "User": "",
+                  "Ignore Login Popup": False,
+                  "First Time Running": True,
+                  "Token": ""
+        }
+
         used_key = output["Used key"]
-        res = output["Resolution"]
         username = output['User']
-        password = output['Password']
-        zoom = int(output["Zoom"])
         ignore_login = output['Ignore Login Popup']
+        first_time_running = output['First Time Running']
+        token = output['Token']
+
+        with open("config.json", 'w') as f:
+            json.dump(output, f, indent=2)
+
+        logger.info("Fixed config file")
+
 
     logger.info('Config file loaded')
 
     def __init__(self):
         super().__init__()
-
-        # Check if all files/folders are present. If aren't, raise a flag so a pop-up appears when loading is done
-        self.call_first_time_running = False
-        if not os.path.exists("Data"):
-            os.mkdir("Data")
-            self.call_first_time_running = True
-
-        if not os.path.exists("Data\\Training Data"):
-            os.mkdir("Data\\Training Data")
-            self.call_first_time_running = True
-
-
-        if self.res == '1280x600': self.res_index = 0
-        elif self.res == '1280x720': self.res_index = 1
-        elif self.res == '1280x760': self.res_index = 2
-        elif self.res == '1280x800': self.res_index = 3
-        elif self.res == '1280x960': self.res_index = 4
-        elif self.res == '1280x1024': self.res_index = 5
-        elif self.res == '1980x1080': self.res_index = 6
-        else:
-            self.res = '1280x720'
-            self.res_index = 1
-            with open("config.json", 'w') as f:
-                self.output['Resolution'] = self.res
-                json.dump(self.output, f)
-            logger.warning("Config file resolution invalid.")
-
-        print("Zoom -5: aparenta ok\n"
-              "Zoom -4: ok\n"
-              "Zoom -3: apresentou rompimento\n"
-              "Zoom -2: apresentou rompimento\n"
-              "Zoom -1: não lembro\n"
-              "Zoom 0: parece ok\n"
-              "outros: não testei\t"
-              "#003\n")
 
         self.initUI()
 
@@ -127,28 +126,6 @@ class Widget(QMainWindow):
         self.v_label.setText("v{}".format(self.version))
         self.v_label_2.setText("v{}".format(self.version))
 
-        # Bot tab
-        self.settings_label.setText(
-            '<html><head/><body><p align="center"><span style=" font-weight:600;">Current Settings:</span></p><p align="center"><span style=" text-decoration: underline;">Fishing key:</span> {key}<br/><span style=" text-decoration: underline;">Resolution:</span> {res}<br/><span style=" text-decoration: underline;">Zoom:</span> {zoom}</p></body></html>'.format(
-                res=self.res,
-                key=self.used_key,
-                zoom=self.zoom
-            ))
-
-        # Data tab
-        self.settings_label_2.setText(
-            '<html><head/><body><p align="center"><span style=" font-weight:600;">Current Settings:</span></p><p align="center"><span style=" text-decoration: underline;">Fishing key:</span> {key}<br/><span style=" text-decoration: underline;">Resolution:</span> {res}<br/><span style=" text-decoration: underline;">Zoom:</span> {zoom}</p></body></html>'.format(
-                res=self.res,
-                key=self.used_key,
-                zoom=self.zoom
-            ))
-
-
-        # Configuring Signals:
-        self.dialog = ChangeKey()
-        self.dialog.new_key.connect(self.update_key)
-
-
         # Defining button/checkbox actions
         self.data_start.clicked.connect(self.data_start_action)
         self.data_stop.clicked.connect(self.data_stop_action)
@@ -167,14 +144,7 @@ class Widget(QMainWindow):
         self.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowCloseButtonHint | Qt.WindowMinimizeButtonHint)
 
         # Bug Report Tab
-        self.contact_email.setVisible(False)
         self.send_message_btn.clicked.connect(self.send_message)
-
-        # Bot Tab
-        self.settings_dialog = Settings(self.used_key, self.zoom, self.res_index)
-        self.settings_dialog.finished.connect(self.update_settings)
-        self.settings_btn.clicked.connect(self.settings_dialog.exec_)
-        self.settings_btn_2.clicked.connect(self.settings_dialog.exec_)
 
         # Menu
         self.logout_btn = self.menu.addAction('Logout')
@@ -186,10 +156,13 @@ class Widget(QMainWindow):
         self.login_btn.setVisible(False)
 
         visit_ranking = self.menu.addAction('Ranking')
-        visit_ranking.triggered.connect(lambda: webbrowser.open(BASE_URL + "/ranking"))
+        visit_ranking.triggered.connect(lambda: webbrowser.open(RANKING_URL))
 
         website = self.menu.addAction('GitHub')
         website.triggered.connect(lambda: webbrowser.open("https://github.com/Setti7/SVFB-GUI"))
+
+        self.config = self.menu.addAction('Fast Config')
+        self.config.triggered.connect(self.fast_config)
 
         logger.info("UI Initialized")
 
@@ -206,45 +179,12 @@ class Widget(QMainWindow):
             self.loading_dialog.close()
             self.show()
 
-            if self.call_first_time_running:
-                msg_box = QMessageBox()
-                msg_box.setText("<strong>Thank you for helping the project!</strong>")
-                msg_box.setInformativeText("Don't forget to configure your settings so the application can work correctly.")
-                msg_box.setWindowTitle("Welcome!")
-                msg_box.setWindowIcon(QtGui.QIcon('media\\logo\\logo.ico'))
-                msg_box.exec_()
 
-    def update_settings(self, settings):
+    def fast_config(self):
 
-        self.res = settings['resolution']
-        self.used_key = settings['key'].upper()
-        self.zoom = settings['zoom']
-
-        with open ("config.json", 'r') as f:
-            output = json.loads(f.read())
-            output["Resolution"] = self.res
-            output["Zoom"] = self.zoom
-            output["Used key"] = self.used_key
-
-        with open("config.json", "w") as f:
-            json.dump(output, f)
-
-        # Changing labels
-        # Bot tab
-        self.settings_label.setText(
-            '<html><head/><body><p align="center"><span style=" font-weight:600;">Current Settings:</span></p><p align="center"><span style=" text-decoration: underline;">Fishing key:</span> {key}<br/><span style=" text-decoration: underline;">Resolution:</span> {res}<br/><span style=" text-decoration: underline;">Zoom:</span> {zoom}</p></body></html>'.format(
-            res=self.res,
-            key=self.used_key,
-            zoom=self.zoom
-        ))
-
-        # Data tab
-        self.settings_label_2.setText(
-            '<html><head/><body><p align="center"><span style=" font-weight:600;">Current Settings:</span></p><p align="center"><span style=" text-decoration: underline;">Fishing key:</span> {key}<br/><span style=" text-decoration: underline;">Resolution:</span> {res}<br/><span style=" text-decoration: underline;">Zoom:</span> {zoom}</p></body></html>'.format(
-                res=self.res,
-                key=self.used_key,
-                zoom=self.zoom
-            ))
+        config_dialog = ChangeKey(self.used_key)
+        if config_dialog.exec_():
+            self.used_key = config_dialog.new_key
 
     # Send message
     def send_message(self):
@@ -266,7 +206,7 @@ class Widget(QMainWindow):
             bug_box.addButton(QMessageBox.Close)
 
             ok = bug_box.addButton(QMessageBox.Ok)
-            ok.clicked.connect(lambda: webbrowser.open(BASE_URL + "/home"))
+            ok.clicked.connect(lambda: webbrowser.open("https://github.com/Setti7/SVFB-GUI/releases"))
             bug_box.exec_()
 
         elif len(msg) > 1000:
@@ -282,44 +222,32 @@ class Widget(QMainWindow):
 
         else:
 
-            user = self.username
             self.message_text.clear()
 
-            if self.contact_me.isChecked():
-                contact = self.contact_email.text()
-            else:
-                contact = False
-
-            upload_url = BASE_URL + "/api/bug-report"
-
             try:
-                self.session.get(upload_url)
-                csrftoken = self.session.cookies['csrftoken']  # get ranking page crsf token
+
                 data = {
-                    'csrfmiddlewaretoken': csrftoken,
                     'message': msg,
-                    'user': user,
-                    'contact': contact,
+                    'user': self.username,
                     'version': self.version,
                 }
 
-                response = self.session.post(upload_url, data=data)
+                headers = {'Authorization': f'Token {self.token}'}
 
-                if response.status_code == 404:
-                    self.message_status_label.setText("There was an error while sending!")
-                    self.message_status_label.setStyleSheet("color: #dc3545;")
+                response = requests.post(BUG_REPORT_URL, data=data, headers=headers)
+
+                result = json.loads(response.text)
+
+
+                if result['success']:
+
+                    self.message_status_label.setText("Message successfully sent!")
+                    self.message_status_label.setStyleSheet("color: #28a745;")
 
                 else:
-
-                    result = json.loads(response.text)
-
-                    if result['success']:
-                        self.message_status_label.setText("Message successfully sent!")
-                        self.message_status_label.setStyleSheet("color: #28a745;")
-
-                    else:
-                        self.message_status_label.setText("There was an error while sending!")
-                        self.message_status_label.setStyleSheet("color: #dc3545;")
+                    logger.error(f"Error while sending message: {result['error']}")
+                    self.message_status_label.setText("There was an error while sending!")
+                    self.message_status_label.setStyleSheet("color: #dc3545;")
 
                 self.timer_msg = QTimer()
                 self.timer_msg.timeout.connect(self.message_status_label.clear)
@@ -361,7 +289,7 @@ class Widget(QMainWindow):
 
         # Thread:
         self.login_thread = QThread()
-        self.login_worker = LoginWorker(self.username, self.password)
+        self.login_worker = LoginWorker(self.username, self.token)
         self.login_worker.moveToThread(self.login_thread)
 
         self.login_worker.result.connect(self.login_control)
@@ -407,7 +335,7 @@ class Widget(QMainWindow):
 
         # Thread:
         self.login_thread = QThread()
-        self.login_worker = LoginWorker(self.username, self.password)
+        self.login_worker = LoginWorker(self.username, self.token)
         self.login_worker.moveToThread(self.login_thread)
 
         # Finished proccess
@@ -436,11 +364,6 @@ class Widget(QMainWindow):
         # As gui has already loaded, we jump through the code made to stop the message box from appearing while loading
         self.call_update_box = True
 
-
-    # Update Widget elements
-    def update_key(self, key): # Updating used key for fishing after ChangeKey dialog:
-        self.used_key_label.setText('Using "{}" key'.format(key))
-        self.used_key = key
 
     def update_score(self, **kwargs):
 
@@ -499,7 +422,7 @@ class Widget(QMainWindow):
 
         ok = updateBox.addButton(QMessageBox.Ok)
         ok.setText('Update')
-        ok.clicked.connect(lambda: webbrowser.open(BASE_URL + "/home"))
+        ok.clicked.connect(lambda: webbrowser.open(HOME_PAGE_URL))
         updateBox.exec_()
 
     def update_message_box(self, update_info):
@@ -559,7 +482,7 @@ class Widget(QMainWindow):
                 self.v_label_2.setText("v{} (v{} REQUIRED)".format(self.version, new_version))
 
                 ok = updateBox.addButton(QMessageBox.Ok)
-                ok.clicked.connect(lambda: webbrowser.open(BASE_URL + "/home"))
+                ok.clicked.connect(lambda: webbrowser.open(HOME_PAGE_URL))
                 updateBox.exec_()
                 self.close()
 
@@ -571,11 +494,14 @@ class Widget(QMainWindow):
 
         self.data_start.setEnabled(False)
         self.data_stop.setEnabled(True)
-        self.settings_btn.setEnabled(False)
-        self.settings_btn_2.setEnabled(False)
         self.send_btn.setEnabled(False)
         self.logout_btn.setEnabled(False)
         self.login_btn.setEnabled(False)
+
+        # Indicating user about the key being used:
+        self.send_status_label.setText(f'Fishing with "{self.used_key}" key. Change it with "Fast Config".')
+        self.send_status_label.setStyleSheet("color: #007bff;")
+        QTimer.singleShot(3000, self.send_status_label.clear)
 
         # Icon
         self.icons_label.setMovie(self.dog_getting_up)
@@ -593,8 +519,8 @@ class Widget(QMainWindow):
         logger.info("Creating data thread")
         self.thread = QThread()
 
-        logger.info("Starting data with: {}, {}, {}".format(self.used_key, self.res, self.zoom))
-        self.worker = SaveData(self.used_key, self.res, self.zoom)
+        logger.info(f"Starting data with: {self.used_key}")
+        self.worker = SaveData(self.used_key)
 
         self.stop_signal.connect(self.worker.stop)  # connect stop signal to worker stop method
         self.worker.moveToThread(self.thread)
@@ -616,13 +542,9 @@ class Widget(QMainWindow):
 
         if hasattr(self, 'bot_running'):
             if not self.bot_running:
-                self.settings_btn.setEnabled(True)
-                self.settings_btn_2.setEnabled(True)
                 self.logout_btn.setEnabled(True)
                 self.login_btn.setEnabled(True)
         else:
-            self.settings_btn.setEnabled(True)
-            self.settings_btn_2.setEnabled(True)
             self.logout_btn.setEnabled(True)
             self.login_btn.setEnabled(True)
 
@@ -655,7 +577,7 @@ class Widget(QMainWindow):
             try:
                 logger.info("Starting send data thread")
                 self.send_data_thread = QThread()  # Thread criado
-                self.send_data_worker = SendData(session=self.session, version=self.version)
+                self.send_data_worker = SendData(version=self.version, token=self.token, username=self.username)
                 self.send_data_worker.moveToThread(self.send_data_thread)
 
                 self.send_data_worker.status_code.connect(self.auto_send_response_code_controller)
@@ -701,10 +623,7 @@ class Widget(QMainWindow):
             self.send_status_label.setStyleSheet("color: #dc3545;")
             self.update_score(offline=True)
 
-
-        self.timer = QTimer()
-        self.timer.timeout.connect(self.send_status_label.clear)
-        self.timer.start(5000)
+        QTimer.singleShot(5000, self.send_status_label.clear)
 
         if hasattr(self, 'data_running'):
             if not self.data_running:
@@ -726,11 +645,9 @@ class Widget(QMainWindow):
             self.bot_btn.setText("Stop")
 
             # Disabling buttons that could cause problems
-            self.settings_btn.setEnabled(False)
-            self.settings_btn_2.setEnabled(False)
             self.logout_btn.setEnabled(False)
             self.login_btn.setEnabled(False)
-            self.dataset_btn.setEnabled(False)
+            self.change_dataset_btn.setEnabled(False)
 
 
         else:
@@ -743,17 +660,13 @@ class Widget(QMainWindow):
             self.bot_btn.setText("Start")
 
             # Enabling buttons
-            self.dataset_btn.setEnabled(True)
+            self.change_dataset_btn.setEnabled(True)
 
             if hasattr(self, 'data_running'):
                 if not self.data_running:
-                    self.settings_btn.setEnabled(True)
-                    self.settings_btn_2.setEnabled(True)
                     self.logout_btn.setEnabled(True)
                     self.login_btn.setEnabled(True)
             else:
-                self.settings_btn.setEnabled(True)
-                self.settings_btn_2.setEnabled(True)
                 self.logout_btn.setEnabled(True)
                 self.login_btn.setEnabled(True)
 
@@ -766,7 +679,7 @@ class Widget(QMainWindow):
             if results['Logged']:
                 logger.info("User successfully logged in")
 
-                self.user_has_logged({"Username": results['Username'], "Password": results['Password'], "Session": results['Session']})
+                self.user_has_logged({"Username": results['Username'], "Token": results['Token'], "Session": results['Session']})
 
             else:
                 # If user has failed to login, keep calling the function until loading stops, so it does not pop up
@@ -780,7 +693,9 @@ class Widget(QMainWindow):
             self.update_score(offline=True)
             logger.warning("Offline")
 
-            self.logout_btn.setVisible(True)
+            self.login_btn.setVisible(False)
+            self.logout_btn.setVisible(False)
+
             self.username_label.mousePressEvent = self.retry_connection
             self.username_label.setText(
                 '<a href="#"><span style=" text-decoration: underline; color:#0000ff;">Retry Connection</span></a>'
@@ -792,10 +707,15 @@ class Widget(QMainWindow):
             )
             self.wait_counter = 0
 
+            if self.first_time_running:
+                welcome_dialog = WelcomeDialog()
+                if welcome_dialog.exec_():
+                    self.first_time_running = False
+
     def login_error(self):
         # when the loading has finished, call the accnt manager pop up if the login failed
         if self.call_accnt_box:
-            logger.warning("Login error")
+            logger.info("Opening account manager")
             self.accnt_timer.stop()
             self.accnt_timer.deleteLater()
 
@@ -806,17 +726,30 @@ class Widget(QMainWindow):
                 self.accnt_manager = AccountManager()
                 self.accnt_manager.user_logged.connect(self.user_has_logged)
                 self.accnt_manager.rejected.connect(self.login_rejected)
+
                 self.accnt_manager.exec_()
 
             else:
                 self.username_label.setText("Not logged")
                 self.username_label_2.setText("Not logged")
+                self.username_label.mousePressEvent = None
+                self.username_label_2.mousePressEvent = None
+
                 self.update_score(not_logged=True)
+
+            if self.first_time_running:
+                welcome_dialog = WelcomeDialog()
+                if welcome_dialog.exec_():
+                    self.first_time_running = False
+
+
 
     def login_rejected(self):
 
         self.username_label.setText("Not logged")
         self.username_label_2.setText("Not logged")
+        self.username_label.mousePressEvent = None
+        self.username_label_2.mousePressEvent = None
 
         self.logout_btn.setVisible(False)
         self.login_btn.setVisible(True)
@@ -827,15 +760,14 @@ class Widget(QMainWindow):
             output["Ignore Login Popup"] = True
 
         with open("config.json", "w") as f:
-            json.dump(output, f)
+            json.dump(output, f, indent=2)
 
     def user_has_logged(self, user_info):
         # When the user has logged in, create a score thread with its user/password to get the online score.
         # Check the online score as soon as possible.
         logger.info("User logged")
         self.username = user_info['Username']
-        self.password = user_info['Password']
-        self.session = user_info['Session']
+        self.token = user_info['Token']
 
         # Checking if there is data to be sent
         if os.listdir('Data\\Training Data'):
@@ -866,7 +798,7 @@ class Widget(QMainWindow):
         # Score Thread initialization
         try:
             self.score_thread = QThread() # Thread criado
-            self.score_worker = QuickCheck(session=self.session) #
+            self.score_worker = QuickCheck(token=self.token, username=self.username) #
             self.score_worker.moveToThread(self.score_thread)
 
             # If logout signal is emmitted, delete the worker and quit then delete the thread too
@@ -895,9 +827,8 @@ class Widget(QMainWindow):
         self.logout_signal.emit()
         logger.info("User logged out")
 
-        self.username = ''
-        self.password = ''
-        self.session = None
+        self.username = None
+        self.token = None
 
         self.username_label.setText("Not logged")
         self.username_label_2.setText("Not logged")
@@ -909,11 +840,11 @@ class Widget(QMainWindow):
 
         with open('config.json', 'r') as f:
             output = json.loads(f.read())
-            output['Password'] = ''
-            output['User'] = ''
+            output['User'] = self.username
+            output['Token'] = self.token
 
         with open('config.json', 'w') as f:
-            json.dump(output, f)
+            json.dump(output, f, indent=2)
 
         self.update_score(not_logged=True)
         self.login_control({"Logged": False})

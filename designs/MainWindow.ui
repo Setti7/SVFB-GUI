@@ -36,7 +36,7 @@
     <item row="1" column="0">
      <widget class="QTabWidget" name="tabWidget">
       <property name="currentIndex">
-       <number>0</number>
+       <number>1</number>
       </property>
       <widget class="QWidget" name="bot">
        <attribute name="title">
@@ -278,7 +278,7 @@
             <item>
              <widget class="QPushButton" name="bot_btn">
               <property name="sizePolicy">
-               <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+               <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
                 <horstretch>0</horstretch>
                 <verstretch>0</verstretch>
                </sizepolicy>
@@ -300,37 +300,9 @@
           <item>
            <layout class="QHBoxLayout" name="horizontalLayout_7">
             <item>
-             <layout class="QVBoxLayout" name="verticalLayout_5">
-              <item>
-               <widget class="QLabel" name="settings_label">
-                <property name="text">
-                 <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Current Settings:&lt;/span&gt;&lt;/p&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; text-decoration: underline;&quot;&gt;Fishing key:&lt;br/&gt;Resolution:&lt;/span&gt;&lt;br/&gt;&lt;span style=&quot; text-decoration: underline;&quot;&gt;Zoom:&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-                </property>
-                <property name="alignment">
-                 <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QPushButton" name="settings_btn">
-                <property name="text">
-                 <string>Change settings</string>
-                </property>
-               </widget>
-              </item>
-             </layout>
-            </item>
-            <item>
-             <widget class="Line" name="line_7">
-              <property name="orientation">
-               <enum>Qt::Vertical</enum>
-              </property>
-             </widget>
-            </item>
-            <item>
              <layout class="QVBoxLayout" name="verticalLayout_6">
               <item>
-               <widget class="QLabel" name="label_9">
+               <widget class="QLabel" name="dataset_label">
                 <property name="text">
                  <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-size:7.8pt; font-weight:600;&quot;&gt;Current Dataset:&lt;/span&gt;&lt;/p&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-size:7.8pt; text-decoration: underline;&quot;&gt;Version:&lt;/span&gt;&lt;span style=&quot; font-size:7.8pt;&quot;&gt; Official - v1.0&lt;br/&gt;&lt;/span&gt;&lt;span style=&quot; font-size:7.8pt; text-decoration: underline;&quot;&gt;Date:&lt;/span&gt;&lt;span style=&quot; font-size:7.8pt;&quot;&gt; 2018-06-23&lt;br/&gt;&lt;/span&gt;&lt;span style=&quot; font-size:7.8pt; text-decoration: underline;&quot;&gt;Accuracy:&lt;/span&gt;&lt;span style=&quot; font-size:7.8pt;&quot;&gt; 82%&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
                 </property>
@@ -340,7 +312,7 @@
                </widget>
               </item>
               <item>
-               <widget class="QPushButton" name="dataset_btn">
+               <widget class="QPushButton" name="change_dataset_btn">
                 <property name="text">
                  <string>Change Dataset</string>
                 </property>
@@ -465,6 +437,9 @@
             <property name="orientation">
              <enum>Qt::Vertical</enum>
             </property>
+            <property name="sizeType">
+             <enum>QSizePolicy::Expanding</enum>
+            </property>
             <property name="sizeHint" stdset="0">
              <size>
               <width>20</width>
@@ -581,30 +556,38 @@
             </item>
             <item>
              <widget class="QLabel" name="settings_label_2">
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>76</height>
+               </size>
+              </property>
               <property name="text">
-               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Current Settings:&lt;/span&gt;&lt;/p&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; text-decoration: underline;&quot;&gt;Fishing key:&lt;br/&gt;Resolution:&lt;/span&gt;&lt;br/&gt;&lt;span style=&quot; text-decoration: underline;&quot;&gt;Zoom:&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Generate Your Own Dataset:&lt;/span&gt;&lt;/p&gt;&lt;p align=&quot;center&quot;&gt;Using your data saved locally, you can train your own Convolutional Neural Network.&lt;br/&gt;It wiil probably be worse than the standard one.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
               </property>
               <property name="alignment">
                <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
               </property>
+              <property name="wordWrap">
+               <bool>true</bool>
+              </property>
              </widget>
             </item>
             <item>
-             <layout class="QHBoxLayout" name="horizontalLayout_4">
-              <item>
-               <widget class="QPushButton" name="settings_btn_2">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
-                </property>
-                <property name="text">
-                 <string>Change settings</string>
-                </property>
-               </widget>
-              </item>
-             </layout>
+             <widget class="QPushButton" name="generate_dataset_btn">
+              <property name="enabled">
+               <bool>false</bool>
+              </property>
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="text">
+               <string>Generate Dataset</string>
+              </property>
+             </widget>
             </item>
            </layout>
           </item>
@@ -668,7 +651,7 @@
              <number>1</number>
             </property>
             <property name="text">
-             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Send me a custom message to hurry up or use it to report bugs if you are cool (don't forget to enter your email in this case).&lt;br/&gt;You can also curse your neighbors here. (max 1000 chars).&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Send me a custom message to hurry up or use it to report bugs if you are cool.&lt;br/&gt;You can also curse your neighbors here. &lt;br/&gt;(max 1000 chars)&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
             </property>
             <property name="scaledContents">
              <bool>false</bool>
@@ -700,30 +683,6 @@
              <string>Write here...</string>
             </property>
            </widget>
-          </item>
-          <item>
-           <layout class="QHBoxLayout" name="horizontalLayout_5">
-            <item>
-             <widget class="QCheckBox" name="contact_me">
-              <property name="text">
-               <string>Contact email</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QLineEdit" name="contact_email">
-              <property name="inputMethodHints">
-               <set>Qt::ImhEmailCharactersOnly</set>
-              </property>
-              <property name="placeholderText">
-               <string>contact email</string>
-              </property>
-              <property name="clearButtonEnabled">
-               <bool>false</bool>
-              </property>
-             </widget>
-            </item>
-           </layout>
           </item>
           <item>
            <widget class="QPushButton" name="send_message_btn">
@@ -794,22 +753,5 @@
   </action>
  </widget>
  <resources/>
- <connections>
-  <connection>
-   <sender>contact_me</sender>
-   <signal>toggled(bool)</signal>
-   <receiver>contact_email</receiver>
-   <slot>setVisible(bool)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>81</x>
-     <y>392</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>165</x>
-     <y>388</y>
-    </hint>
-   </hints>
-  </connection>
- </connections>
+ <connections/>
 </ui>
