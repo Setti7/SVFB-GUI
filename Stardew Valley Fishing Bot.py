@@ -499,7 +499,7 @@ class Widget(QMainWindow):
         self.login_btn.setEnabled(False)
 
         # Indicating user about the key being used:
-        self.send_status_label.setText(f'Fishing with "{self.used_key}" key. Change it with "Fast Config".')
+        self.send_status_label.setText(f'Using "{self.used_key}" key. Change it in "Fast Config".')
         self.send_status_label.setStyleSheet("color: #007bff;")
         QTimer.singleShot(3000, self.send_status_label.clear)
 
@@ -519,8 +519,12 @@ class Widget(QMainWindow):
         logger.info("Creating data thread")
         self.thread = QThread()
 
-        logger.info(f"Starting data with: {self.used_key}")
-        self.worker = SaveData(self.used_key)
+        logger.info(f"Using: {self.used_key}")
+
+        if self.used_key.upper() == "LEFT-CLICK":
+            self.worker = SaveData(0x01)
+        else:
+            self.worker = SaveData(self.used_key)
 
         self.stop_signal.connect(self.worker.stop)  # connect stop signal to worker stop method
         self.worker.moveToThread(self.thread)

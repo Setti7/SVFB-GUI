@@ -212,8 +212,9 @@ class SaveData(QObject):
                     if new_frames >= 75:
 
                         validated = self.validate(bgr_screen_first, bgr_screen_last)
+                        verified = verify_too_similar_frames(training_data)
 
-                        if validated and verify_too_similar_frames(training_data):
+                        if validated and verified:
                             np.save(file_name, training_data)
 
                             # Sinaliza ao main_thread que deve enviar os dados coletados

@@ -16,6 +16,15 @@ import win32api as wapi
 
 
 def key_check(key):
+
+    # 0x01 is left-click
+    if key == 0x01:
+        if wapi.GetAsyncKeyState(key):
+            return 1
+        else:
+            return 0
+
+    # Other keys
     if wapi.GetAsyncKeyState(ord(key)):
         return 1
     else:
