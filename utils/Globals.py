@@ -1,15 +1,21 @@
-import logging
-
 # You shouldn't be here, but as you already are, maybe you want faster loading times? Check the DEV constant.
 
 # If you want faster loading, but with some visual glitches at the startup (words rapidly changing) while it loads,
 # change this to "True" (no quotes, capitalized), else, leave it as "False"
 DEV = True
-TEST = True
 
 # Do not change BASE_URL under no circumstances.
 BASE_URL = 'http://dedeco.me'
 BASE_URL = 'http://127.0.0.1'
+
+if not 'https://' in BASE_URL or DEV:
+    from warnings import warn
+
+    if not 'https://' in BASE_URL:
+        warn("Not using HTTPS for communications, this is insecure! Please change BASE_URL for production.", Warning)
+
+    if DEV:
+        warn("Using DEV mode. Please change DEV to False for production.", Warning)
 
 # URLS:
 GET_TOKEN_URL = BASE_URL + "/api/get-token"
