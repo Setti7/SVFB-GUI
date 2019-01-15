@@ -371,18 +371,6 @@ class Widget(QMainWindow):
 
     def update_score(self, **kwargs):
 
-        # if 'offline' in kwargs.keys():
-        #     self.score_label.setText("")
-        #     # self.score_label.setText("Score: Offline")
-        #
-        # if 'waiting' in kwargs.keys():
-        #     self.score_label.setText("")
-        #     # self.score_label.setText("Score: Waiting Connection")
-        #
-        # if 'not_logged' in kwargs.keys():
-        #     self.score_label.setText("")
-        #     # self.score_label.setText("Score: Not Logged")
-
         if 'online_score' in kwargs.keys():
             self.score_label.setVisible(True)
             self.line.setVisible(True)
@@ -397,12 +385,8 @@ class Widget(QMainWindow):
             self.score_label.setVisible(False)
             self.line.setVisible(False)
 
-    def get_local_score(self, data_len=None, **kwargs):
+    def get_local_score(self, data_len=None):
         local_data_file = 'Data\\local_score.json'
-
-        if 'who_called' in kwargs.keys():
-            print(f'Who called: {kwargs["who_called"]}')
-
 
         if data_len is None:
 
@@ -660,7 +644,7 @@ class Widget(QMainWindow):
                 QMessageBox.information(self, "Oops!", "Could not start thread to send data: %s" % e)
 
         else:
-            self.get_local_score(data_len, who_called='send_data')
+            self.get_local_score(data_len)
 
             # Raises the little offline message
             self.auto_send_response_code_controller(-2)
@@ -685,7 +669,7 @@ class Widget(QMainWindow):
         else:
             self.send_status_label.setText("Verify your connection")
             self.send_status_label.setStyleSheet("color: #dc3545;")
-            self.get_local_score(who_called='auto_send_response_code_controller')
+            self.get_local_score()
 
         QTimer.singleShot(5000, self.send_status_label.clear)
 
@@ -759,7 +743,7 @@ class Widget(QMainWindow):
 
         if "Offline" in results.keys():
             self.online = False
-            self.get_local_score(who_called='login_control')
+            self.get_local_score()
 
             logger.warning("Offline")
 
@@ -805,7 +789,7 @@ class Widget(QMainWindow):
                 self.username_label.mousePressEvent = None
                 self.username_label_2.mousePressEvent = None
 
-                self.get_local_score(who_called='login_error')
+                self.get_local_score()
 
             if self.first_time_running:
                 welcome_dialog = WelcomeDialog()
@@ -823,7 +807,7 @@ class Widget(QMainWindow):
 
         self.logout_btn.setVisible(False)
         self.login_btn.setVisible(True)
-        self.get_local_score(who_called='login_rejected')
+        self.get_local_score()
 
         with open ("config.json", 'r') as f:
             output = json.loads(f.read())

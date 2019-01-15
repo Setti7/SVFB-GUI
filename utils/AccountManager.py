@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import QDialog
 from PyQt5.QtCore import pyqtSignal
 from PyQt5 import QtGui
 from PyQt5.uic import loadUi
-from utils.Globals import BASE_URL, VALIDATE_TOKEN_URL, LOGIN_URL, GET_TOKEN_URL
+from utils.Globals import VALIDATE_TOKEN_URL, GET_TOKEN_URL
 
 
 class AccountManager(QDialog):

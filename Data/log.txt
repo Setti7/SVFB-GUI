@@ -70,3 +70,21 @@ dTime: 12.436794s
 Frames: 614.0
 Size: (6, 134)
 
+Method: np.vstack
+Median FPS: 58.95
+dTime: 15.233718s
+Frames: 898.0
+Size: (6, 134)
+
+Method: np.vstack
+Median FPS: 65.04
+dTime: 7.180061s
+Frames: 467.0
+Size: (6, 134)
+
+Method: np.vstack
+Median FPS: 46.9
+dTime: 12.216329s
+Frames: 573.0
+Size: (6, 134)
+
