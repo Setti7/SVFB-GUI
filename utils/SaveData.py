@@ -110,7 +110,7 @@ def fishing_region(img_bgr, region_template_gray, w, h):
 
 class SaveData(QObject):
     finished = pyqtSignal()
-    send_data = pyqtSignal()
+    send_data = pyqtSignal(int)
 
     def __init__(self, key, parent=None):
         QObject.__init__(self, parent=parent)
@@ -218,7 +218,7 @@ class SaveData(QObject):
                             np.save(file_name, training_data)
 
                             # Sinaliza ao main_thread que deve enviar os dados coletados
-                            self.send_data.emit()
+                            self.send_data.emit(new_frames)
                             print("Session saved!")
 
                     # Necessary to reset the region coordinates after every fishing session.

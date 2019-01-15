@@ -1,3 +1,4 @@
+import logging
 # You shouldn't be here, but as you already are, maybe you want faster loading times? Check the DEV constant.
 
 # If you want faster loading, but with some visual glitches at the startup (words rapidly changing) while it loads,
@@ -18,7 +19,6 @@ if not 'https://' in BASE_URL or DEV:
         warn("Using DEV mode. Please change DEV to False for production.", Warning)
 
 # URLS:
-GET_TOKEN_URL = BASE_URL + "/api/get-token"
 BUG_REPORT_URL = BASE_URL + "/api/bug-report"
 VERSION_CONTROL_URL = BASE_URL + "/api/version-control"
 CREATE_ACCOUNT_URL = BASE_URL + "/api/create-account"
@@ -27,7 +27,9 @@ SCORE_URL = BASE_URL + '/api/check-score'
 UPLOAD_DATA_URL = BASE_URL + "/api/data-upload"
 RANKING_URL = BASE_URL + "/ranking"
 HOME_PAGE_URL = BASE_URL + "/home"
+LOGIN_URL = BASE_URL + "/accounts/reddit/login/"
+GET_TOKEN_URL = BASE_URL + "/ranking/?token=show"
 
 # Version info
-VERSION = 1.0
+VERSION = 1.1
 RELEASE_DATE = "2018-06-23"

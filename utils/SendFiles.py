@@ -63,11 +63,14 @@ class SendData(QObject):
                         response.status_code = 201
 
                     os.remove(file_to_send)
-                    logger.info("Files deleted")
+                    logger.info("File deleted")
 
                     # Sinaliza ao main_thread qual a situação do envio dos dados, para que ele exiba aquelas notificações
                     # acima do botão "Send", informando o usuário se foi realmente enviado.
                     self.status_code.emit(response.status_code)
+
+                # Cleaning database of local score
+                os.remove('Data\\local_score.json')
 
             except Exception as e:
                 logger.error("Error while sending data: %s" % e)

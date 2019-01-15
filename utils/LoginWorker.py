@@ -12,26 +12,23 @@ from utils.Globals import VALIDATE_TOKEN_URL, HOME_PAGE_URL
 class LoginWorker(QObject):
     result = pyqtSignal(dict)
 
-    def __init__(self, username, token, parent=None):
+    def __init__(self, token, parent=None):
         QObject.__init__(self, parent=parent)
-        self.username = username
         self.token = token
 
     @pyqtSlot()
     def do_work(self):
 
-        if self.username != None and self.token != None:
+        if self.token is not None:
             try:
                 logger.info("Validating user")
 
-                response = requests.post(VALIDATE_TOKEN_URL,
-                                         headers={"Authorization": f"Token {self.token}"},
-                                         data={'username': f'{self.username}'})
-
+                response = requests.post(VALIDATE_TOKEN_URL, headers={"Authorization": f"Token {self.token}"})
                 result = json.loads(response.content)
 
                 if result['valid-token']:
-                    self.result.emit({"Logged": True, "Username": self.username, "Token": self.token, "Session": None})
+                    username = result['username']
+                    self.result.emit({"Logged": True, "Username": username, "Token": self.token, "Session": None})
 
                 else:
                     self.result.emit({"Logged": False})

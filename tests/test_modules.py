@@ -31,16 +31,18 @@ class TestSaveData(unittest.TestCase):
     def test_load_template(self):
         # Check if templates are being loaded correctly
 
-        fishing_region_file = os.path.join(MEDIA_ROOT, 'Images\\fr 3g.png')
-        region_template_zoom_1 = cv2.imread(fishing_region_file, 0)
+        for i in range(-5, 6):
+            fishing_region_file = os.path.join(MEDIA_ROOT, f'Images\\fr {i}g.png')
+            region_template_zoom = cv2.imread(fishing_region_file, 0)
 
-        region_template, *_ = self.instance.load_template(3)
-        np.testing.assert_array_equal(region_template, region_template_zoom_1)
+            region_template, *_ = self.instance.load_template(i)
+            np.testing.assert_array_equal(region_template, region_template_zoom)
 
     def test_fishing_region(self):
-        # Check if fishing region is found on standard image
+        # Check if fishing region is found on all templates
+        # TODO: take screenshot with all zoom levels
 
-        fishing_file = os.path.join(MEDIA_TEST, 'fishing_zoom_level_-4.png')
+        fishing_file = os.path.join(MEDIA_TEST, f'fishing_zoom_level_-4.png')
         fishing_img_bgr = cv2.imread(fishing_file, 1)
 
         region_template_gray, w_template, h_template = self.instance.load_template(-4)
@@ -49,6 +51,7 @@ class TestSaveData(unittest.TestCase):
 
     def test_find_zoom(self):
         # Check if zoom level is being found
+        # TODO: take screenshot with all zoom levels
 
         fishing_file = os.path.join(MEDIA_TEST, 'fishing_zoom_level_-4.png')
         fishing_img_bgr = cv2.imread(fishing_file, 1)

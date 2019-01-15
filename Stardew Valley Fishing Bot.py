@@ -19,6 +19,7 @@ from utils.CheckForUpdates import CheckForUpdates
 from utils.ChangeKey import ChangeKey
 from utils.Globals import DEV, VERSION, RELEASE_DATE, RANKING_URL, BUG_REPORT_URL, HOME_PAGE_URL
 
+from time import time
 import traceback, sys
 
 # https://stackoverflow.com/questions/44447674/traceback-missing-when-exception-encountered-in-pyqt5-code-in-eclipsepydev
@@ -53,6 +54,9 @@ class Widget(QMainWindow):
             ignore_login = output['Ignore Login Popup']
             first_time_running =  output['First Time Running']
             token = output['Token']
+
+        if token is None or username is None:
+            raise TypeError
 
     except Exception as e:
         logger.error(e)
@@ -289,7 +293,7 @@ class Widget(QMainWindow):
 
         # Thread:
         self.login_thread = QThread()
-        self.login_worker = LoginWorker(self.username, self.token)
+        self.login_worker = LoginWorker(self.token)
         self.login_worker.moveToThread(self.login_thread)
 
         self.login_worker.result.connect(self.login_control)
@@ -335,7 +339,7 @@ class Widget(QMainWindow):
 
         # Thread:
         self.login_thread = QThread()
-        self.login_worker = LoginWorker(self.username, self.token)
+        self.login_worker = LoginWorker(self.token)
         self.login_worker.moveToThread(self.login_thread)
 
         # Finished proccess
@@ -384,9 +388,60 @@ class Widget(QMainWindow):
             self.line.setVisible(True)
             self.score_label.setText("Online Score: {}".format(kwargs['online_score']))
 
+        elif 'local_score' in kwargs.keys():
+            self.score_label.setVisible(True)
+            self.line.setVisible(True)
+            self.score_label.setText("Local Score: {}".format(kwargs['local_score']))
+
         else:
             self.score_label.setVisible(False)
             self.line.setVisible(False)
+
+    def get_local_score(self, data_len=None, **kwargs):
+        local_data_file = 'Data\\local_score.json'
+
+        if 'who_called' in kwargs.keys():
+            print(f'Who called: {kwargs["who_called"]}')
+
+
+        if data_len is None:
+
+            # if local database does not exist, score is 0
+            if not os.path.exists(local_data_file):
+                total_local_score = 0
+
+            # if it exists, then score is the sum of its values
+            else:
+
+                with open(local_data_file, 'r') as f:
+
+                    content = f.read()
+                    local_data = {} if content == '' else json.loads(content)
+
+                total_local_score = sum([v for v in local_data.values()])
+
+        else:
+
+            # Creating file if it does not exist
+            if not os.path.exists(local_data_file):
+                open(local_data_file, 'w').close()
+
+            # Saving score for local "database"
+            with open(local_data_file, 'r') as f:
+                # local_data is the dict from the file if it is not empty, else it becomes an empty dict
+                content = f.read()
+                local_data = {} if content == '' else json.loads(content)
+
+            new_key = len(local_data.keys()) + 1
+            local_data[new_key] = data_len
+
+            with open(local_data_file, 'w') as f:
+                json.dump(local_data, f, indent=2)
+
+            total_local_score = sum([v for v in local_data.values()])
+
+        self.update_score(local_score=total_local_score)
+
 
     def dog_go_idle(self):
         self.icons_label.setMovie(self.dog_idle)
@@ -497,6 +552,7 @@ class Widget(QMainWindow):
         self.send_btn.setEnabled(False)
         self.logout_btn.setEnabled(False)
         self.login_btn.setEnabled(False)
+        self.config.setEnabled(False)
 
         # Indicating user about the key being used:
         self.send_status_label.setText(f'Using "{self.used_key}" key. Change it in "Fast Config".')
@@ -536,7 +592,7 @@ class Widget(QMainWindow):
         self.thread.started.connect(self.worker.main)
         self.thread.finished.connect(self.worker.stop)
 
-        self.worker.send_data.connect(self.send_data)
+        self.worker.send_data.connect(lambda data_len: self.send_data(data_len))
 
         self.thread.start()
 
@@ -554,6 +610,8 @@ class Widget(QMainWindow):
 
         self.data_start.setEnabled(True)
         self.data_stop.setEnabled(False)
+        self.config.setEnabled(True)
+
 
         if self.online:
             self.send_btn.setEnabled(True)
@@ -570,7 +628,7 @@ class Widget(QMainWindow):
         self.dog_timer2.timeout.connect(self.dog_go_idle)
         self.dog_timer2.start(370)
 
-    def send_data(self):
+    def send_data(self, data_len):
         """
         Creates thread to send data and don't stop the execution of the program while it is uploading.
         Every time the button is clicked, it is created a new thread, that is deleted after the upload.
@@ -602,8 +660,11 @@ class Widget(QMainWindow):
                 QMessageBox.information(self, "Oops!", "Could not start thread to send data: %s" % e)
 
         else:
+            self.get_local_score(data_len, who_called='send_data')
+
             # Raises the little offline message
             self.auto_send_response_code_controller(-2)
+
 
     def auto_send_response_code_controller(self, code):
         if code == 200:
@@ -619,13 +680,12 @@ class Widget(QMainWindow):
         elif code == -2:
             self.send_status_label.setText('Could not connect to server. Session is saved.')
             self.send_status_label.setStyleSheet("color: #ffaf00;")
-            self.update_score(waiting=True)
             self.send_btn.setText("Send Data (upload pending)")
 
         else:
             self.send_status_label.setText("Verify your connection")
             self.send_status_label.setStyleSheet("color: #dc3545;")
-            self.update_score(offline=True)
+            self.get_local_score(who_called='auto_send_response_code_controller')
 
         QTimer.singleShot(5000, self.send_status_label.clear)
 
@@ -676,7 +736,7 @@ class Widget(QMainWindow):
 
 
     # Account functions:
-    def login_control(self, results):
+    def login_control(self, results, **kwargs):
         self.auth_done = True
 
         if "Logged" in results.keys():
@@ -686,15 +746,21 @@ class Widget(QMainWindow):
                 self.user_has_logged({"Username": results['Username'], "Token": results['Token'], "Session": results['Session']})
 
             else:
+
+                if 'logout' in kwargs.keys():
+                    self.ignore_login = True
+
                 # If user has failed to login, keep calling the function until loading stops, so it does not pop up
                 # with the loading screen still on.
                 self.accnt_timer = QTimer()
                 self.accnt_timer.timeout.connect(self.login_error)
                 self.accnt_timer.start(200)
 
+
         if "Offline" in results.keys():
             self.online = False
-            self.update_score(offline=True)
+            self.get_local_score(who_called='login_control')
+
             logger.warning("Offline")
 
             self.login_btn.setVisible(False)
@@ -739,7 +805,7 @@ class Widget(QMainWindow):
                 self.username_label.mousePressEvent = None
                 self.username_label_2.mousePressEvent = None
 
-                self.update_score(not_logged=True)
+                self.get_local_score(who_called='login_error')
 
             if self.first_time_running:
                 welcome_dialog = WelcomeDialog()
@@ -757,7 +823,7 @@ class Widget(QMainWindow):
 
         self.logout_btn.setVisible(False)
         self.login_btn.setVisible(True)
-        self.update_score(not_logged=True)
+        self.get_local_score(who_called='login_rejected')
 
         with open ("config.json", 'r') as f:
             output = json.loads(f.read())
@@ -801,6 +867,7 @@ class Widget(QMainWindow):
 
         # Score Thread initialization
         try:
+            # TODO: maybe add if self.online?
             self.score_thread = QThread() # Thread criado
             self.score_worker = QuickCheck(token=self.token, username=self.username) #
             self.score_worker.moveToThread(self.score_thread)
@@ -831,8 +898,9 @@ class Widget(QMainWindow):
         self.logout_signal.emit()
         logger.info("User logged out")
 
-        self.username = None
-        self.token = None
+        self.username = ""
+        self.token = ""
+        self.online = False
 
         self.username_label.setText("Not logged")
         self.username_label_2.setText("Not logged")
@@ -850,8 +918,7 @@ class Widget(QMainWindow):
         with open('config.json', 'w') as f:
             json.dump(output, f, indent=2)
 
-        self.update_score(not_logged=True)
-        self.login_control({"Logged": False})
+        self.login_control({"Logged": False}, logout=True)
 
 
     def closeEvent(self, event):
